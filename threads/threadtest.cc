@@ -29,15 +29,17 @@ void
 SimpleThread(int which)
 {
     int num;
+    
+    for (num = 0; num < 5; num++) {
+        //int a[100000];
+        printf("*** thread %d looped %d times\n", currentThread->getTid(), num);
+        currentThread->Yield();
+    }
+}
+
+void PrintThread(){
     printf("thread %d running. uid=%d\n",currentThread->getTid(),currentThread->getUid());
     currentThread->Yield();
-    // for (num = 0; num < 5; num++) {
-    //     //int a[100000];
-    //     printf("*** thread %d looped %d times\n", which, num);
-    //     printf("thread id: %d\n",currentThread->getTid());
-    //     printf("thread name: %s\n", currentThread->getName());
-    //     currentThread->Yield();
-    // }
 }
 
 //----------------------------------------------------------------------
@@ -61,6 +63,7 @@ ThreadTest1()
     SimpleThread(0);
 }
 
+//最大线程测试
 void
 ThreadTest2()
 {
@@ -69,9 +72,35 @@ ThreadTest2()
     int createNum = 127;
     for(int i=0;i<createNum;i++){
         Thread *t = new Thread("thread");
+        t->Fork(PrintThread, NULL);
+    }
+    
+}
+
+//TS函数
+void ThreadShow(){
+    printf("tid          uid          name\n");
+    for(int i=0; i<MAXTHREAD; i++){
+        if(t_pointer[i]!=NULL){
+            printf("%3d%11d%18s\n",t_pointer[i]->getTid(),t_pointer[i]->getUid(),t_pointer[i]->getName());
+        }
+    }
+}
+
+//TS测试
+void
+ThreadTest3()
+{
+    DEBUG('t', "Entering ThreadTest1");
+    //创建10个进程
+    int createNum = 10;
+    for(int i=0;i<createNum;i++){
+        Thread *t = new Thread("thread");
         t->Fork(SimpleThread, (void*)1);
     }
     
+    //调用TS显示进程
+    ThreadShow();
 }
 
 //----------------------------------------------------------------------
@@ -84,13 +113,17 @@ ThreadTest()
 {
     switch (testnum) {
     case 1:
-    ThreadTest1();
+        ThreadTest1();
+        break;
     case 2:
-    ThreadTest2();
-	break;
+        ThreadTest2();
+        break;
+    case 3:
+        ThreadTest3();
+	    break;
     default:
-	printf("No test specified.\n");
-	break;
+	    printf("No test specified.\n");
+	    break;
     }
 }
 
