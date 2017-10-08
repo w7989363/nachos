@@ -32,7 +32,7 @@
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
-Thread::Thread(char* threadName)
+Thread::Thread(char* threadName, int p=10)
 {
     name = threadName;
     stackTop = NULL;
@@ -56,6 +56,15 @@ Thread::Thread(char* threadName)
     }
     //*************
     ASSERT(this->tid != -1);
+
+    //设置优先级0-10,0最高
+    if(p<0 || p>10){
+        //不在范围内设置为最低
+        this->setPri(10);
+    }
+    else{
+        this->setPri(p);
+    }
 
 #ifdef USER_PROGRAM
     space = NULL;
@@ -206,11 +215,11 @@ Thread::Yield ()
     ASSERT(this == currentThread);
     
     DEBUG('t', "Yielding thread \"%s\"\n", getName());
-    
+    //先将当前线程按优先级加入就绪队列，再调度
+    scheduler->ReadyToRun(this);
     nextThread = scheduler->FindNextToRun();
     if (nextThread != NULL) {
-	scheduler->ReadyToRun(this);
-	scheduler->Run(nextThread);
+        scheduler->Run(nextThread);
     }
     (void) interrupt->SetLevel(oldLevel);
 }

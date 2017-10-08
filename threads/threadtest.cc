@@ -32,7 +32,7 @@ SimpleThread(int which)
     
     for (num = 0; num < 5; num++) {
         //int a[100000];
-        printf("*** thread %d looped %d times\n", currentThread->getTid(), num);
+        printf("*** thread %d looped %d times. pri = %d\n", currentThread->getTid(), num, currentThread->getPri());
         currentThread->Yield();
     }
 }
@@ -53,14 +53,18 @@ ThreadTest1()
 {
     DEBUG('t', "Entering ThreadTest1");
 
-    Thread *t = new Thread("forked thread");
+    Thread *t1 = new Thread("forked thread1", 3);
 
-    t->Fork(SimpleThread, (void*)1);
+    t1->Fork(SimpleThread, (void*)1);
 
-    Thread *t1 = new Thread("forked thread1");
+    Thread *t2 = new Thread("forked thread2",1);
     
-    t1->Fork(SimpleThread, (void*)2);
-    SimpleThread(0);
+    t2->Fork(SimpleThread, (void*)1);
+
+    Thread *t3 = new Thread("forked thread2",2);
+    
+    t3->Fork(SimpleThread, (void*)1);
+
 }
 
 //最大线程测试
@@ -102,6 +106,8 @@ ThreadTest3()
     //调用TS显示进程
     ThreadShow();
 }
+
+
 
 //----------------------------------------------------------------------
 // ThreadTest
