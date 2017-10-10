@@ -16,6 +16,12 @@
 // testnum is set in main.cc
 int testnum = 1;
 
+
+void PrintThread(){
+    printf("thread %d running. uid=%d\n",currentThread->getTid(),currentThread->getUid());
+    currentThread->Yield();
+}
+
 //----------------------------------------------------------------------
 // SimpleThread
 // 	Loop 5 times, yielding the CPU to another ready thread 
@@ -24,23 +30,23 @@ int testnum = 1;
 //	"which" is simply a number identifying the thread, for debugging
 //	purposes.
 //----------------------------------------------------------------------
-
 void
 SimpleThread(int which)
 {
     int num;
     
     for (num = 0; num < 5; num++) {
+        if(num == 3){
+            Thread* t = new Thread("higher thread",0);
+            t->Fork(PrintThread,1);
+        }
         //int a[100000];
         printf("*** thread %d looped %d times. pri = %d\n", currentThread->getTid(), num, currentThread->getPri());
         currentThread->Yield();
     }
 }
 
-void PrintThread(){
-    printf("thread %d running. uid=%d\n",currentThread->getTid(),currentThread->getUid());
-    currentThread->Yield();
-}
+
 
 //----------------------------------------------------------------------
 // ThreadTest1

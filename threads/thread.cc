@@ -33,7 +33,7 @@
 //----------------------------------------------------------------------
 
 Thread::Thread(char* threadName, int p=10)
-{
+{ 
     name = threadName;
     stackTop = NULL;
     stack = NULL;
@@ -56,7 +56,6 @@ Thread::Thread(char* threadName, int p=10)
     }
     //*************
     ASSERT(this->tid != -1);
-
     //设置优先级0-10,0最高
     if(p<0 || p>10){
         //不在范围内设置为最低
@@ -65,7 +64,6 @@ Thread::Thread(char* threadName, int p=10)
     else{
         this->setPri(p);
     }
-
 #ifdef USER_PROGRAM
     space = NULL;
 #endif
