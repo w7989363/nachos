@@ -28,6 +28,12 @@ typedef struct product{
     int value;
 }Product;
 
+//锁
+Lock* lock;
+//条件变量
+Condition* c_empty;
+Condition* c_full;
+
 
 void PrintThread(){
     printf("thread %d running. uid=%d\n",currentThread->getTid(),currentThread->getUid());
@@ -120,8 +126,9 @@ void ThreadTest3()
     //调用TS显示进程
     ThreadShow();
 }
-//生产者函数
-void producer(){
+
+//生产者函数 信号量
+void producerWithSemaphore(){
     for(int i = 0; i < 20; i++){
         s_empty->P();
         s_mutex->P();
@@ -133,8 +140,8 @@ void producer(){
         s_mutex->V();
     }
 }
-//消费者函数
-void consumer(){
+//消费者函数 信号量
+void consumerWithSemaphore(){
     for(int i = 0; i < 10; i++){
         s_full->P();
         s_mutex->P();
@@ -152,11 +159,53 @@ void ThreadTest4(){
     s_mutex = new Semaphore("mutex", 1);
     list= new List;
     Thread* pro1 = new Thread("producer");
-    pro1->Fork(producer,(void*)1);
+    pro1->Fork(producerWithSemaphore,(void*)1);
     Thread* con1 = new Thread("consumer1");
-    con1->Fork(consumer,(void*)1);
+    con1->Fork(consumerWithSemaphore,(void*)1);
     Thread* con2 = new Thread("consumer2");
-    con2->Fork(consumer,(void*)1);
+    con2->Fork(consumerWithSemaphore,(void*)1);
+
+}
+
+//生产者函数 条件变量
+void producerWithCondition(){
+    for(int i = 0; i < 20; i++){
+        lock->Acquire();
+        while(list->NumInList() == 10){
+            c_full->Wait(lock);
+        }
+        Product* pro = new Product;
+        pro->value = i;
+        list->Append(pro);
+        printf("thread %s produce : %d. buffer:%d/10\n",currentThread->getName(),i,list->NumInList());
+        c_empty->Signal(lock);
+        lock->Release();
+    }
+}
+//消费者函数 信号量
+void consumerWithCondition(){
+    for(int i = 0; i < 20; i++){
+        lock->Acquire();
+        while(list->NumInList() == 0){
+            c_empty->Wait(lock);
+        }
+        Product* pro = (Product*)list->Remove();
+        printf("thread %s consume : %d. buffer:%d/10\n",currentThread->getName(),pro->value,list->NumInList());
+        delete pro;
+        c_full->Signal(lock);
+        lock->Release();
+    }
+}
+//条件变量解决生产者消费者问题
+void ThreadTest5(){
+    lock = new Lock("lock");
+    c_empty = new Condition("empty");
+    c_full = new Condition("full");
+    list= new List;
+    Thread* pro1 = new Thread("producer");
+    pro1->Fork(producerWithCondition,(void*)1);
+    Thread* con = new Thread("consumer");
+    con->Fork(consumerWithCondition,(void*)1);
 
 }
 
@@ -181,6 +230,9 @@ ThreadTest()
         break;
     case 4:
         ThreadTest4();
+        break;
+    case 5:
+        ThreadTest5();
         break;
     default:
 	    printf("No test specified.\n");
