@@ -90,7 +90,7 @@ void ThreadTest1()
 }
 
 //最大线程测试
-void ThreadTest2()
+void maxThreadTest()
 {
     DEBUG('t', "Entering ThreadTest1");
 
@@ -113,7 +113,7 @@ void ThreadShow(){
 }
 
 //TS测试
-void ThreadTest3()
+void TSTest()
 {
     DEBUG('t', "Entering ThreadTest1");
     //创建10个进程
@@ -153,7 +153,7 @@ void consumerWithSemaphore(){
     }
 }
 //信号量解决生产者消费者问题
-void ThreadTest4(){
+void semaphoreTest(){
     s_full = new Semaphore("full", 0);
     s_empty = new Semaphore("empty", 10);
     s_mutex = new Semaphore("mutex", 1);
@@ -182,7 +182,7 @@ void producerWithCondition(){
         lock->Release();
     }
 }
-//消费者函数 信号量
+//消费者函数 条件变量
 void consumerWithCondition(){
     for(int i = 0; i < 20; i++){
         lock->Acquire();
@@ -197,7 +197,7 @@ void consumerWithCondition(){
     }
 }
 //条件变量解决生产者消费者问题
-void ThreadTest5(){
+void conditionTest(){
     lock = new Lock("lock");
     c_empty = new Condition("empty");
     c_full = new Condition("full");
@@ -207,6 +207,24 @@ void ThreadTest5(){
     Thread* con = new Thread("consumer");
     con->Fork(consumerWithCondition,(void*)1);
 
+}
+
+//使得Semaphore for barrier +1
+void comeToBarrier(){
+    printf("a thread come to the barrier.\n");
+    s_mutex->V();
+}
+//barrier测试
+void barrierTest(){
+    s_mutex = new Semaphore("barrier",-5);
+    for(int i = 0; i < 10; i++){
+        Thread* t = new Thread("thread");
+        t->Fork(comeToBarrier,(void*)1);
+    }
+    printf("try to cross the barrier...\n");
+    s_mutex->P();
+    printf("cross barrier success.\n");
+    
 }
 
 
@@ -223,16 +241,19 @@ ThreadTest()
         ThreadTest1();
         break;
     case 2:
-        ThreadTest2();
+        maxThreadTest();
         break;
     case 3:
-        ThreadTest3();
+        TSTest();
         break;
     case 4:
-        ThreadTest4();
+        semaphoreTest();
         break;
     case 5:
-        ThreadTest5();
+        conditionTest();
+        break;
+    case 6:
+        barrierTest();
         break;
     default:
 	    printf("No test specified.\n");
