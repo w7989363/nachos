@@ -115,10 +115,8 @@ void Lock::Acquire() {
 }
 
 void Lock::Release() {
-    if(isHeldByCurrentThread()){
-        heldThread = NULL;
-        mutex->V();
-    }
+    heldThread = NULL;
+    mutex->V();
 }
 
 bool Lock::isHeldByCurrentThread(){

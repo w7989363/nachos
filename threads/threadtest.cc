@@ -34,6 +34,11 @@ Lock* lock;
 Condition* c_empty;
 Condition* c_full;
 
+//read write lock
+Lock* countLock;
+Lock* bufferLock;
+int readerCount;
+
 
 void PrintThread(){
     printf("thread %d running. uid=%d\n",currentThread->getTid(),currentThread->getUid());
@@ -227,6 +232,71 @@ void barrierTest(){
     
 }
 
+//reader
+void readerWithLock(){
+    countLock->Acquire();
+    readerCount++;
+    if(readerCount == 1){
+        printf("the first reader is trying to read.\n");
+        bufferLock->Acquire();
+        printf("reader can read.\n");
+    }
+    countLock->Release();
+
+    printf("reading..\n");
+    currentThread->Yield(); 
+
+    countLock->Acquire();
+    readerCount--;
+    if(readerCount==0){
+        printf("the last reader is leaving.\n");
+        bufferLock->Release();
+        printf("reader and writer can come in.\n");
+    }
+    countLock->Release();
+}
+//writer
+void writerWithLock(){
+    printf("a wirter try to come in.\n");
+    bufferLock->Acquire();
+    printf("writing...\n");
+    currentThread->Yield();
+    printf("writer is leaving.\n");
+    bufferLock->Release();
+    printf("reader and writer can come in.\n");
+}
+//read/write lock测试 writer占用
+void rwlockTest1(){
+    countLock = new Lock("count lock");
+    bufferLock = new Lock("buffer lock");
+    readerCount = 0;
+    Thread* writer1 = new Thread("writer");
+    writer1->Fork(writerWithLock,(void*)1);
+    for(int i = 0; i < 5; i++){
+        Thread* t = new Thread("reader");
+        t->Fork(readerWithLock,(void*)1);
+        if(i==4){
+            Thread* writer1 = new Thread("writer");
+            writer1->Fork(writerWithLock,(void*)1);
+        }
+    }
+    //writerWithLock();
+}
+//read/write lock测试 reader占用
+void rwlockTest2(){
+    countLock = new Lock("count lock");
+    bufferLock = new Lock("buffer lock");
+    readerCount = 0;
+    for(int i = 0; i < 10; i++){
+        Thread* t = new Thread("reader");
+        t->Fork(readerWithLock,(void*)1);
+        if(i==4 || i == 6){
+            Thread* writer1 = new Thread("writer");
+            writer1->Fork(writerWithLock,(void*)1);
+        }
+    }
+    //writerWithLock();
+}
 
 //----------------------------------------------------------------------
 // ThreadTest
@@ -254,6 +324,12 @@ ThreadTest()
         break;
     case 6:
         barrierTest();
+        break;
+    case 7:
+        rwlockTest1();
+        break;
+    case 8:
+        rwlockTest2();
         break;
     default:
 	    printf("No test specified.\n");
