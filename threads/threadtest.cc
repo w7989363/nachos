@@ -12,9 +12,21 @@
 #include "copyright.h"
 #include "system.h"
 #include "elevatortest.h"
+#include "list.h"
+#include "synch.h"
 
 // testnum is set in main.cc
 int testnum = 1;
+//信号量
+Semaphore* s_full;
+Semaphore* s_empty;
+Semaphore* s_mutex;
+//缓存数据
+List* list;
+//产品
+typedef struct product{
+    int value;
+}Product;
 
 
 void PrintThread(){
@@ -30,16 +42,15 @@ void PrintThread(){
 //	"which" is simply a number identifying the thread, for debugging
 //	purposes.
 //----------------------------------------------------------------------
-void
-SimpleThread(int which)
+void SimpleThread(int which)
 {
     int num;
     
     for (num = 0; num < 5; num++) {
-        if(num == 3){
-            Thread* t = new Thread("higher thread",0);
-            t->Fork(PrintThread,1);
-        }
+        // if(num == 3){
+        //     Thread* t = new Thread("higher thread",0);
+        //     t->Fork(PrintThread,1);
+        // }
         //int a[100000];
         printf("*** thread %d looped %d times. pri = %d\n", currentThread->getTid(), num, currentThread->getPri());
         currentThread->Yield();
@@ -54,8 +65,7 @@ SimpleThread(int which)
 //	to call SimpleThread, and then calling SimpleThread ourselves.
 //----------------------------------------------------------------------
 
-void
-ThreadTest1()
+void ThreadTest1()
 {
     DEBUG('t', "Entering ThreadTest1");
 
@@ -74,8 +84,7 @@ ThreadTest1()
 }
 
 //最大线程测试
-void
-ThreadTest2()
+void ThreadTest2()
 {
     DEBUG('t', "Entering ThreadTest1");
 
@@ -98,8 +107,7 @@ void ThreadShow(){
 }
 
 //TS测试
-void
-ThreadTest3()
+void ThreadTest3()
 {
     DEBUG('t', "Entering ThreadTest1");
     //创建10个进程
@@ -112,7 +120,45 @@ ThreadTest3()
     //调用TS显示进程
     ThreadShow();
 }
+//生产者函数
+void producer(){
+    for(int i = 0; i < 20; i++){
+        s_empty->P();
+        s_mutex->P();
+        Product* pro = new Product;
+        pro->value = i;
+        list->Append(pro);
+        printf("thread %s produce : %d. buffer:%d/10\n",currentThread->getName(),i,list->NumInList());
+        s_full->V();
+        s_mutex->V();
+    }
+}
+//消费者函数
+void consumer(){
+    for(int i = 0; i < 10; i++){
+        s_full->P();
+        s_mutex->P();
+        Product* pro = (Product*)list->Remove();
+        printf("thread %s consume : %d. buffer:%d/10\n",currentThread->getName(),pro->value,list->NumInList());
+        delete pro;
+        s_empty->V();
+        s_mutex->V();
+    }
+}
+//信号量解决生产者消费者问题
+void ThreadTest4(){
+    s_full = new Semaphore("full", 0);
+    s_empty = new Semaphore("empty", 10);
+    s_mutex = new Semaphore("mutex", 1);
+    list= new List;
+    Thread* pro1 = new Thread("producer");
+    pro1->Fork(producer,(void*)1);
+    Thread* con1 = new Thread("consumer1");
+    con1->Fork(consumer,(void*)1);
+    Thread* con2 = new Thread("consumer2");
+    con2->Fork(consumer,(void*)1);
 
+}
 
 
 //----------------------------------------------------------------------
@@ -132,7 +178,10 @@ ThreadTest()
         break;
     case 3:
         ThreadTest3();
-	    break;
+        break;
+    case 4:
+        ThreadTest4();
+        break;
     default:
 	    printf("No test specified.\n");
 	    break;

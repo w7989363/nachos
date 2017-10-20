@@ -80,6 +80,8 @@ class Lock {
   private:
     char* name;				// for debugging
     // plus some other stuff you'll need to define
+    Semaphore* mutex;  //利用信号两实现锁
+    Thread* heldThread; //记录该锁由哪个线程持有，用于实现isHeldByCurrentThread
 };
 
 // The following class defines a "condition variable".  A condition
@@ -132,5 +134,6 @@ class Condition {
   private:
     char* name;
     // plus some other stuff you'll need to define
+    List* waitQueue;  //等待队列
 };
 #endif // SYNCH_H
