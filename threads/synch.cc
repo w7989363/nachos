@@ -128,11 +128,9 @@ Condition::Condition(char* debugName) {
     name = debugName;
     waitQueue = new List;
 }
-
 Condition::~Condition() { 
     delete waitQueue;
 }
-
 void Condition::Wait(Lock* conditionLock) { 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
     conditionLock->Release();
@@ -142,7 +140,6 @@ void Condition::Wait(Lock* conditionLock) {
     conditionLock->Acquire();
     interrupt->SetLevel(oldLevel);
 }
-
 void Condition::Signal(Lock* conditionLock) { 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
     Thread* thread;

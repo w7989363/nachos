@@ -131,25 +131,25 @@ void Machine::Debugger()
     fflush(stdout);
     fgets(buf, 80, stdin);
     if (sscanf(buf, "%d", &num) == 1)
-	runUntilTime = num;
+	    runUntilTime = num;
     else {
-	runUntilTime = 0;
-	switch (*buf) {
-	  case '\n':
-	    break;
-	    
-	  case 'c':
-	    singleStep = FALSE;
-	    break;
-	    
-	  case '?':
-	    printf("Machine commands:\n");
-	    printf("    <return>  execute one instruction\n");
-	    printf("    <number>  run until the given timer tick\n");
-	    printf("    c         run until completion\n");
-	    printf("    ?         print help message\n");
-	    break;
-	}
+        runUntilTime = 0;
+        switch (*buf) {
+        case '\n':
+            break;
+            
+        case 'c':
+            singleStep = FALSE;
+            break;
+            
+        case '?':
+            printf("Machine commands:\n");
+            printf("    <return>  execute one instruction\n");
+            printf("    <number>  run until the given timer tick\n");
+            printf("    c         run until completion\n");
+            printf("    ?         print help message\n");
+            break;
+        }
     }
     delete [] buf;
 }

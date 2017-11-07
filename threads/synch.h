@@ -80,7 +80,7 @@ class Lock {
   private:
     char* name;				// for debugging
     // plus some other stuff you'll need to define
-    Semaphore* mutex;  //利用信号两实现锁
+    Semaphore* mutex;  //利用信号量实现锁
     Thread* heldThread; //记录该锁由哪个线程持有，用于实现isHeldByCurrentThread
 };
 

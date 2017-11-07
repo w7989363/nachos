@@ -140,7 +140,8 @@ void producerWithSemaphore(){
         Product* pro = new Product;
         pro->value = i;
         list->Append(pro);
-        printf("thread %s produce : %d. buffer:%d/10\n",currentThread->getName(),i,list->NumInList());
+        printf("thread %s produce : %d. buffer:%d/10\n",
+            currentThread->getName(),i,list->NumInList());
         s_full->V();
         s_mutex->V();
     }
@@ -151,7 +152,8 @@ void consumerWithSemaphore(){
         s_full->P();
         s_mutex->P();
         Product* pro = (Product*)list->Remove();
-        printf("thread %s consume : %d. buffer:%d/10\n",currentThread->getName(),pro->value,list->NumInList());
+        printf("thread %s consume : %d. buffer:%d/10\n",
+            currentThread->getName(),pro->value,list->NumInList());
         delete pro;
         s_empty->V();
         s_mutex->V();
@@ -169,7 +171,6 @@ void semaphoreTest(){
     con1->Fork(consumerWithSemaphore,(void*)1);
     Thread* con2 = new Thread("consumer2");
     con2->Fork(consumerWithSemaphore,(void*)1);
-
 }
 
 //生产者函数 条件变量
@@ -182,7 +183,8 @@ void producerWithCondition(){
         Product* pro = new Product;
         pro->value = i;
         list->Append(pro);
-        printf("thread %s produce : %d. buffer:%d/10\n",currentThread->getName(),i,list->NumInList());
+        printf("thread %s produce : %d. buffer:%d/10\n",
+            currentThread->getName(),i,list->NumInList());
         c_empty->Signal(lock);
         lock->Release();
     }
@@ -195,7 +197,8 @@ void consumerWithCondition(){
             c_empty->Wait(lock);
         }
         Product* pro = (Product*)list->Remove();
-        printf("thread %s consume : %d. buffer:%d/10\n",currentThread->getName(),pro->value,list->NumInList());
+        printf("thread %s consume : %d. buffer:%d/10\n",
+            currentThread->getName(),pro->value,list->NumInList());
         delete pro;
         c_full->Signal(lock);
         lock->Release();
@@ -211,7 +214,6 @@ void conditionTest(){
     pro1->Fork(producerWithCondition,(void*)1);
     Thread* con = new Thread("consumer");
     con->Fork(consumerWithCondition,(void*)1);
-
 }
 
 //使得Semaphore for barrier +1
@@ -229,7 +231,6 @@ void barrierTest(){
     printf("try to cross the barrier...\n");
     s_mutex->P();
     printf("cross barrier success.\n");
-    
 }
 
 //reader
