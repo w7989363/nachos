@@ -61,6 +61,8 @@ Machine::Machine(bool debug)
     mainMemory = new char[MemorySize];
     for (i = 0; i < MemorySize; i++)
       	mainMemory[i] = 0;
+    //初始化bitmap
+    bitmap = new BitMap(MemorySize);
 #ifdef USE_TLB
     tlb = new TranslationEntry[TLBSize];
     for (i = 0; i < TLBSize; i++)
@@ -205,16 +207,14 @@ Machine::DumpState()
 //   	Fetch or write the contents of a user program register.
 //----------------------------------------------------------------------
 
-int Machine::ReadRegister(int num)
-    {
+int Machine::ReadRegister(int num){
 	ASSERT((num >= 0) && (num < NumTotalRegs));
 	return registers[num];
-    }
+}
 
-void Machine::WriteRegister(int num, int value)
-    {
+void Machine::WriteRegister(int num, int value){
 	ASSERT((num >= 0) && (num < NumTotalRegs));
 	// DEBUG('m', "WriteRegister %d, value %d\n", num, value);
 	registers[num] = value;
-    }
+}
 

@@ -77,9 +77,9 @@ BitMap::Test(int which)
     ASSERT(which >= 0 && which < numBits);
     
     if (map[which / BitsInWord] & (1 << (which % BitsInWord)))
-	return TRUE;
+	    return TRUE;
     else
-	return FALSE;
+	    return FALSE;
 }
 
 //----------------------------------------------------------------------
@@ -131,9 +131,21 @@ BitMap::Print()
 {
     printf("Bitmap set:\n"); 
     for (int i = 0; i < numBits; i++)
-	if (Test(i))
-	    printf("%d, ", i);
+        if (Test(i))
+            printf("%d, ", i);
     printf("\n"); 
+}
+
+//打印内存使用情况
+void PrintUsage(){
+    int count = 0;
+    for(int i = 0; i < numBits; i++){
+        if(Test(i)){
+            count++;
+        }
+    }
+    float pct = (float)count / numBits * 100;
+    printf("Total mem: %d, Used: %d, Usage percent: %.2f%%.\n", numBits, count, pct);
 }
 
 // These aren't needed until the FILESYS assignment

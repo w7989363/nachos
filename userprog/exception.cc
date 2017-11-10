@@ -106,6 +106,9 @@ ExceptionHandler(ExceptionType which)
 	    DEBUG('a', "Shutdown, initiated by user program.\n");
    	    interrupt->Halt();
     } 
+    else if((which == SyscallException) && (type == SC_Exit)){
+        DEBUG('a', "user program is done.\n");
+    }
     else if(which == PageFaultException){
         if(machine->tlb != NULL){
             //TLB缺页处理
