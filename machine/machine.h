@@ -180,7 +180,11 @@ class Machine {
 					// "read-only" to Nachos kernel code
 
     TranslationEntry *pageTable;
-    unsigned int pageTableSize;
+	unsigned int pageTableSize;
+	
+	int tlb_hit;	//tlb hit计数器
+	int tlb_miss;	//tlb_miss计数器
+	int LRU_mark[TLBSize];	//记录有多少次没有被用到了
 
   private:
     bool singleStep;		// drop back into the debugger after each

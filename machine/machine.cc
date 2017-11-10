@@ -64,12 +64,16 @@ Machine::Machine(bool debug)
 #ifdef USE_TLB
     tlb = new TranslationEntry[TLBSize];
     for (i = 0; i < TLBSize; i++)
-	tlb[i].valid = FALSE;
+        tlb[i].valid = FALSE;
+        LRU_mark[i] = 0;
     pageTable = NULL;
 #else	// use linear page table
     tlb = NULL;
     pageTable = NULL;
 #endif
+
+    //tlb hit miss
+    tlb_hit = tlb_miss = 0;
 
     singleStep = debug;
     CheckEndian();
@@ -82,6 +86,8 @@ Machine::Machine(bool debug)
 
 Machine::~Machine()
 {
+    float hitRate = (float)machine->tlb_hit/(machine->tlb_hit + machine->tlb_miss);
+    printf("tlb_hit: %d, tlb_miss: %d, hit_rate: %f\n", machine->tlb_hit,machine->tlb_miss,hitRate);
     delete [] mainMemory;
     if (tlb != NULL)
         delete [] tlb;

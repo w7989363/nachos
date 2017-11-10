@@ -37,11 +37,11 @@ Machine::Run()
 	       currentThread->getName(), stats->totalTicks);
     interrupt->setStatus(UserMode);
     for (;;) {
-        OneInstruction(instr);
-	interrupt->OneTick();
-	if (singleStep && (runUntilTime <= stats->totalTicks))
-	  Debugger();
-    }
+		OneInstruction(instr);
+		interrupt->OneTick();
+		if (singleStep && (runUntilTime <= stats->totalTicks))
+			Debugger();
+	}
 }
 
 

@@ -200,7 +200,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     }
     
     // we must have either a TLB or a page table, but not both!
-    ASSERT(tlb == NULL || pageTable == NULL);	
+    //ASSERT(tlb == NULL || pageTable == NULL);	
     ASSERT(tlb != NULL || pageTable != NULL);	
 
 // calculate the virtual page number, and offset within the page,
@@ -220,13 +220,21 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 		}
 		entry = &pageTable[vpn];
     } else {
+		//维护LRU_mark，每项先+1,后面命中则令某一项为0
+		for(int k = 0; k < TLBSize; k++){
+			machine->LRU_mark[k]++;
+		}
         for (entry = NULL, i = 0; i < TLBSize; i++)
     	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
 				entry = &tlb[i];			// FOUND!
+				//维护LRU_mark
+				machine->LRU_mark[i] = 0;
+				machine->tlb_hit++;
 				break;
 	    	}
 		if (entry == NULL) {				// not found
-    	    DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
+			DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
+			machine->tlb_miss++;
     	    return PageFaultException;		// really, this is a TLB fault,
 						// the page may be in memory,
 						// but not in the TLB

@@ -25,6 +25,55 @@
 #include "system.h"
 #include "syscall.h"
 
+
+//FIFO置换算法
+int FIFOReplace(){
+    for(int i = 0; i < TLBSize-1; i++){
+        machine->tlb[i] = machine->tlb[i+1];
+    }
+    return TLBSize-1;
+}
+
+//LRU置换算法
+int LRUReplace(){
+    //挑出LRU_mark最大的对应项
+    int pos = 0;
+    int max = -1;
+    for(int i = 0; i < TLBSize; i++){
+        if(machine->LRU_mark[i]>max){
+            max = machine->LRU_mark[i];
+            pos = i;
+        }
+    }
+    //将LRU_mark对应项置0
+    machine->LRU_mark[pos] = 0;
+    return pos;
+}
+
+//TLB缺页处理
+void TLBPageFault(){
+    int vpn = (unsigned)machine->ReadRegister(BadVAddrReg) / PageSize;
+    int pos = -1;
+    for(int i = 0; i<TLBSize; i++){
+        if(machine->tlb[i].valid == FALSE){
+            pos = i;
+            break;
+        }
+    }
+    //TLB满，执行替换算法
+    if(pos = -1){
+        //pos = FIFOReplace();
+        pos = LRUReplace();
+    }
+    machine->tlb[pos].valid = TRUE;
+    machine->tlb[pos].virtualPage = vpn;
+    machine->tlb[pos].physicalPage = machine->pageTable[vpn].physicalPage;
+    machine->tlb[pos].use = FALSE;
+    machine->tlb[pos].dirty = FALSE;
+    machine->tlb[pos].readOnly = FALSE;
+}
+
+
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -56,8 +105,20 @@ ExceptionHandler(ExceptionType which)
     if ((which == SyscallException) && (type == SC_Halt)) {
 	    DEBUG('a', "Shutdown, initiated by user program.\n");
    	    interrupt->Halt();
-    } else {
+    } 
+    else if(which == PageFaultException){
+        if(machine->tlb != NULL){
+            //TLB缺页处理
+            TLBPageFault();
+        }
+        else{
+            //页表缺页
+            printf("If you see this, the program must be wrong.\n");
+        }
+    }
+    else {
 	    printf("Unexpected user mode exception %d %d\n", which, type);
 	    ASSERT(FALSE);
     }
 }
+
