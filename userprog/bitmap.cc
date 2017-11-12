@@ -137,7 +137,7 @@ BitMap::Print()
 }
 
 //打印内存使用情况
-void PrintUsage(){
+void BitMap::PrintUsage(){
     int count = 0;
     for(int i = 0; i < numBits; i++){
         if(Test(i)){

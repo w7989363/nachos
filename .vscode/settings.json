@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "typeinfo": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "syscall.h": "c",
+        "array": "cpp",
+        "initializer_list": "cpp",
+        "utility": "cpp"
     }
 }

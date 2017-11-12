@@ -61,8 +61,8 @@ Machine::Machine(bool debug)
     mainMemory = new char[MemorySize];
     for (i = 0; i < MemorySize; i++)
       	mainMemory[i] = 0;
-    //初始化bitmap
-    bitmap = new BitMap(MemorySize);
+    //初始化bitmap,每一位控制一页
+    bitmap = new BitMap(NumPhysPages);
 #ifdef USE_TLB
     tlb = new TranslationEntry[TLBSize];
     for (i = 0; i < TLBSize; i++)
@@ -88,8 +88,8 @@ Machine::Machine(bool debug)
 
 Machine::~Machine()
 {
-    float hitRate = (float)machine->tlb_hit/(machine->tlb_hit + machine->tlb_miss);
-    printf("tlb_hit: %d, tlb_miss: %d, hit_rate: %f\n", machine->tlb_hit,machine->tlb_miss,hitRate);
+    // float hitRate = (float)machine->tlb_hit/(machine->tlb_hit + machine->tlb_miss);
+    // printf("tlb_hit: %d, tlb_miss: %d, hit_rate: %f\n", machine->tlb_hit,machine->tlb_miss,hitRate);
     delete [] mainMemory;
     if (tlb != NULL)
         delete [] tlb;

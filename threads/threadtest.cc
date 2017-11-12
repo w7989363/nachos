@@ -15,6 +15,8 @@
 #include "list.h"
 #include "synch.h"
 
+extern void StartProcess(char *filename);
+
 // testnum is set in main.cc
 int testnum = 1;
 //信号量
@@ -338,3 +340,22 @@ ThreadTest()
     }
 }
 
+#ifdef USER_PROGRAM
+void usertest1(){
+    char* file = "./test/test";
+    StartProcess(file);
+}
+
+void usertest2(){
+    char* file = "./test/test";
+    StartProcess(file);
+}
+
+void UserThreadTest(){
+    Thread *t1 = new Thread("user thread1");
+    Thread *t2 = new Thread("user thread2");
+
+    t1->Fork(usertest1, 1);
+    t2->Fork(usertest2, 2);
+}
+#endif

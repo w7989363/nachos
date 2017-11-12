@@ -1,7 +1,7 @@
 #include "syscall.h"
 
-#define M 20
-#define N 20
+#define M 6
+#define N 6
 int num[M][N];
 int main(){
     int i,j;
@@ -10,6 +10,6 @@ int main(){
             num[i][j] = i*j;
         }
     }
-    // Exit();
-    Halt();
+    Exit(1);
+    //Halt();
 }

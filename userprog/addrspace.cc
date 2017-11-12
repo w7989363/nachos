@@ -103,22 +103,36 @@ AddrSpace::AddrSpace(OpenFile *executable)
     
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
-    bzero(machine->mainMemory, size);
+    //bzero(machine->mainMemory, size);
 
 // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
-			noffH.code.size, noffH.code.inFileAddr);
+        //executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),noffH.code.size, noffH.code.inFileAddr);
+        int pos = noffH.code.inFileAddr;
+        for(i = 0; i < noffH.code.size; i++){
+            int vpn = (noffH.code.virtualAddr + i) / PageSize;
+            int offset = (noffH.code.virtualAddr + i) % PageSize;
+            int phyaddr = pageTable[vpn].physicalPage * PageSize + offset;
+            executable->ReadAt(&(machine->mainMemory[phyaddr]), 1, pos++);
+        }
     }
     if (noffH.initData.size > 0) {
         DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
 			noffH.initData.virtualAddr, noffH.initData.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
-			noffH.initData.size, noffH.initData.inFileAddr);
+        //executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),noffH.initData.size, noffH.initData.inFileAddr);
+        int pos = noffH.initData.inFileAddr;
+        for(i = 0; i < noffH.initData.size; i++){
+            int vpn = (noffH.initData.virtualAddr + i) / PageSize;
+            int offset = (noffH.initData.virtualAddr + i) % PageSize;
+            int phyaddr = pageTable[vpn].physicalPage * PageSize + offset;
+            executable->ReadAt(&(machine->mainMemory[phyaddr]), 1, pos++);
+        }
     }
 
+    //输出内存占用量
+    machine->bitmap->PrintUsage();
 }
 
 //----------------------------------------------------------------------
@@ -128,8 +142,8 @@ AddrSpace::AddrSpace(OpenFile *executable)
 
 AddrSpace::~AddrSpace()
 {
-    for(int i = 0; i < pageTableSize; i++){
-        machine->Clear(pageTable[i].physicalPage);
+    for(int i = 0; i < numPages; i++){
+        machine->bitmap->Clear(pageTable[i].physicalPage);
     }
     delete pageTable;
 }

@@ -108,6 +108,7 @@ ExceptionHandler(ExceptionType which)
     } 
     else if((which == SyscallException) && (type == SC_Exit)){
         DEBUG('a', "user program is done.\n");
+        currentThread->Finish();
     }
     else if(which == PageFaultException){
         if(machine->tlb != NULL){
