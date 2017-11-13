@@ -102,6 +102,14 @@ Scheduler::Run (Thread *nextThread)
         //清空占用的内存
         for(int i = 0; i < currentThread->space->numPages; i++){
             if(machine->pageTable[i].valid == TRUE){
+                // //脏页，写回磁盘
+                // if(machine->pageTable[i].dirty){
+                //     for(int j = 0; j < PageSize; j++){
+                //         machine->swapspace[(machine->pageTable[i].virtualPage +
+                //             currentThread->space->vpnoffset) * PageSize + j]
+                //             = machine->mainMemory[machine->pageTable[i].physicalPage * PageSize + j];
+                //     }
+                // }
                 //清理bitmap
                 machine->bitmap->Clear(machine->pageTable[i].physicalPage);
                 //使页表项失效

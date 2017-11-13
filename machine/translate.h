@@ -40,6 +40,8 @@ class TranslationEntry {
 			// page is referenced or modified.
     bool dirty;         // This bit is set by the hardware every time the
 			// page is modified.
+    //为实现倒排页表，加入线程ID
+    int tid;
 };
 
 #endif
