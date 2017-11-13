@@ -350,4 +350,25 @@ Thread::RestoreUserState()
     for (int i = 0; i < NumTotalRegs; i++)
 	machine->WriteRegister(i, userRegisters[i]);
 }
+
+//挂起线程
+void Thread::Suspend(){
+    Thread *nextThread;
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);
+
+    ASSERT(this == currentThread);
+    
+    //修改挂起状态
+    status = SUSPENDED;
+    //插入挂起队列
+    scheduler->suspendedList->Append((void*)currentThread);
+    nextThread = scheduler->FindNextToRun();
+    if(nextThread == NULL){
+        interrupt->Idle();
+    }
+    else{
+        scheduler->Run(nextThread);
+    }
+    (void)interrupt->SetLevel(oldLevel);
+}
 #endif

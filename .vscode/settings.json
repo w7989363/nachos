@@ -9,6 +9,8 @@
         "*.tcc": "cpp",
         "functional": "cpp",
         "thread": "cpp",
-        "tuple": "cpp"
+        "tuple": "cpp",
+        "stdio.h": "c",
+        "cstdio": "c"
     }
 }

@@ -27,10 +27,11 @@ class Scheduler {
 					// list, if any, and return thread.
     void Run(Thread* nextThread);	// Cause nextThread to start running
     void Print();			// Print contents of ready list
-    
+    List *suspendedList;  //挂起的线程队列
   private:
     List *readyList;  		// queue of threads that are ready to run,
-				// but not running
+        // but not running
+    
 };
 
 #endif // SCHEDULER_H

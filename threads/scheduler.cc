@@ -30,6 +30,7 @@
 Scheduler::Scheduler()
 { 
     readyList = new List; 
+    suspendedList = new List;
 } 
 
 //----------------------------------------------------------------------
@@ -40,6 +41,7 @@ Scheduler::Scheduler()
 Scheduler::~Scheduler()
 { 
     delete readyList; 
+    delete suspendedList;
 } 
 
 //----------------------------------------------------------------------
@@ -96,7 +98,20 @@ Scheduler::Run (Thread *nextThread)
 #ifdef USER_PROGRAM			// ignore until running user programs 
     if (currentThread->space != NULL) {	// if this thread is a user program,
         currentThread->SaveUserState(); // save the user's CPU registers
-	    currentThread->space->SaveState();
+        currentThread->space->SaveState();
+        //清空占用的内存
+        for(int i = 0; i < currentThread->space->numPages; i++){
+            if(machine->pageTable[i].valid == TRUE){
+                //清理bitmap
+                machine->bitmap->Clear(machine->pageTable[i].physicalPage);
+                //使页表项失效
+                machine->pageTable[i].valid = FALSE;
+            }
+        }
+        //清空TLB
+        for(int i =0; i < TLBSize; i++){
+            machine->tlb[i].valid = FALSE;
+        }
     }
 #endif
     

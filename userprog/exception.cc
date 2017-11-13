@@ -141,6 +141,7 @@ ExceptionHandler(ExceptionType which)
             break;
         case SC_Exit:
             DEBUG('a', "user program is done.\n");
+            //printf("ret:%d",machine->ReadRegister(4));
             currentThread->Finish();
             break;
         default:
