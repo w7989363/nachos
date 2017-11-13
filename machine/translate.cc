@@ -207,39 +207,62 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 // from the virtual address
     vpn = (unsigned) virtAddr / PageSize;
     offset = (unsigned) virtAddr % PageSize;
-    
-    if (tlb == NULL) {		// => page table => vpn is index into table
-		if (vpn >= pageTableSize) {
-			DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-				virtAddr, pageTableSize);
-			return AddressErrorException;
-		} else if (!pageTable[vpn].valid) {
-			DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-				virtAddr, pageTableSize);
-			return PageFaultException;
+	
+	//首先查找TLB
+	//维护LRU_mark，每项先+1,后面命中则令某一项为0
+	for(int k = 0; k < TLBSize; k++){
+		machine->LRU_mark[k]++;
+	}
+	for (entry = NULL, i = 0; i < TLBSize; i++)
+		if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
+			entry = &tlb[i];			// FOUND!
+			//维护LRU_mark
+			machine->LRU_mark[i] = 0;
+			machine->tlb_hit++;
+			break;
 		}
-		entry = &pageTable[vpn];
-    } else {
-		//维护LRU_mark，每项先+1,后面命中则令某一项为0
-		for(int k = 0; k < TLBSize; k++){
-			machine->LRU_mark[k]++;
-		}
-        for (entry = NULL, i = 0; i < TLBSize; i++)
-    	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
-				entry = &tlb[i];			// FOUND!
-				//维护LRU_mark
-				machine->LRU_mark[i] = 0;
-				machine->tlb_hit++;
-				break;
-	    	}
-		if (entry == NULL) {				// not found
-			DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
-			machine->tlb_miss++;
-    	    return PageFaultException;		// really, this is a TLB fault,
-						// the page may be in memory,
-						// but not in the TLB
-		}
-    }
+	if (entry == NULL) {				// not found
+		DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
+		machine->tlb_miss++;
+		//启动TLB却页异常处理
+		//machine->RaiseException(TLBPageFaultException, virtAddr);
+		return PageFaultException;		// really, this is a TLB fault,
+					// the page may be in memory,
+					// but not in the TLB
+	}
+				
+    // if (tlb == NULL) {		// => page table => vpn is index into table
+	// 	if (vpn >= pageTableSize) {
+	// 		DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
+	// 			virtAddr, pageTableSize);
+	// 		return AddressErrorException;
+	// 	} else if (!pageTable[vpn].valid) {
+	// 		DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
+	// 			virtAddr, pageTableSize);
+	// 		return PageFaultException;
+	// 	}
+	// 	entry = &pageTable[vpn];
+    // } else {
+	// 	//维护LRU_mark，每项先+1,后面命中则令某一项为0
+	// 	for(int k = 0; k < TLBSize; k++){
+	// 		machine->LRU_mark[k]++;
+	// 	}
+    //     for (entry = NULL, i = 0; i < TLBSize; i++)
+    // 	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
+	// 			entry = &tlb[i];			// FOUND!
+	// 			//维护LRU_mark
+	// 			machine->LRU_mark[i] = 0;
+	// 			machine->tlb_hit++;
+	// 			break;
+	//     	}
+	// 	if (entry == NULL) {				// not found
+	// 		DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
+	// 		machine->tlb_miss++;
+    // 	    return PageFaultException;		// really, this is a TLB fault,
+	// 					// the page may be in memory,
+	// 					// but not in the TLB
+	// 	}
+    // }
 
     if (entry->readOnly && writing) {	// trying to write to a read-only page
 		DEBUG('a', "%d mapped read-only at %d in TLB!\n", virtAddr, i);

@@ -38,7 +38,7 @@
 #define TLBSize		4		// if there is a TLB, make it small
 
 enum ExceptionType { NoException,           // Everything ok!
-		     SyscallException,      // A program executed a system call.
+			 SyscallException,      // A program executed a system call.
 		     PageFaultException,    // No valid translation found
 		     ReadOnlyException,     // Write attempted to page marked 
 					    // "read-only"
@@ -161,6 +161,8 @@ class Machine {
 	//位图，全局内存管理
 	BitMap* bitmap;
 
+	char *swapspace;	//虚存
+	int swapoffset;	//虚存页偏移
 
 // NOTE: the hardware translation of virtual addresses in the user program
 // to physical addresses (relative to the beginning of "mainMemory")
@@ -189,6 +191,8 @@ class Machine {
 	int tlb_hit;	//tlb hit计数器
 	int tlb_miss;	//tlb_miss计数器
 	int LRU_mark[TLBSize];	//记录有多少次没有被用到了
+
+	
 
   private:
     bool singleStep;		// drop back into the debugger after each

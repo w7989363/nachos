@@ -50,9 +50,30 @@ int LRUReplace(){
     return pos;
 }
 
-//TLB缺页处理
-void TLBPageFault(){
+//页表却页处理
+void UpdatePageTable(){
+    //虚拟页号，加上偏移对应虚存中该页位置
     int vpn = (unsigned)machine->ReadRegister(BadVAddrReg) / PageSize;
+    //bitmap分配一页物理内存
+    int ppn = machine->bitmap->Find();
+    //物理内存满
+    ASSERT(ppn != -1);
+    //printf("ppn:%d\n",ppn);
+    //拷贝到物理内存
+    for(int i = 0; i < PageSize; i++){
+        //printf("mainmem:%d,swap:%d\n",ppn*PageSize + i,(vpn+currentThread->space->vpnoffset)*PageSize + i);
+        machine->mainMemory[ppn*PageSize + i] = machine->swapspace[(vpn+currentThread->space->vpnoffset)*PageSize + i];
+    }
+    //修改页表
+    machine->pageTable[vpn].physicalPage = ppn;
+    machine->pageTable[vpn].valid = TRUE;
+    printf("vpn:%d has been inserted into mainMem:%d\n\n",vpn,ppn);
+}
+
+//TLB缺页处理
+void UpdateTLB(){
+    int vpn = (unsigned)machine->ReadRegister(BadVAddrReg) / PageSize;
+    printf("vpn:%d\n",vpn);
     int pos = -1;
     for(int i = 0; i<TLBSize; i++){
         if(machine->tlb[i].valid == FALSE){
@@ -65,12 +86,22 @@ void TLBPageFault(){
         //pos = FIFOReplace();
         pos = LRUReplace();
     }
+    //页表该项valid为false
+    if(!machine->pageTable[vpn].valid){
+        //却页处理程序，将该页调入内存
+        printf("PageFault. reading from swap.\n");
+        UpdatePageTable();
+    }
+    //该页已经调入内存
+    ASSERT(machine->pageTable[vpn].valid);
+    //插入TLB
     machine->tlb[pos].valid = TRUE;
     machine->tlb[pos].virtualPage = vpn;
     machine->tlb[pos].physicalPage = machine->pageTable[vpn].physicalPage;
     machine->tlb[pos].use = FALSE;
     machine->tlb[pos].dirty = FALSE;
     machine->tlb[pos].readOnly = FALSE;
+    
 }
 
 
@@ -102,23 +133,25 @@ ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
 
-    if ((which == SyscallException) && (type == SC_Halt)) {
-	    DEBUG('a', "Shutdown, initiated by user program.\n");
-   	    interrupt->Halt();
-    } 
-    else if((which == SyscallException) && (type == SC_Exit)){
-        DEBUG('a', "user program is done.\n");
-        currentThread->Finish();
+    if (which == SyscallException) {
+        switch(type){
+        case SC_Halt:
+            DEBUG('a', "Shutdown, initiated by user program.\n");
+   	        interrupt->Halt();
+            break;
+        case SC_Exit:
+            DEBUG('a', "user program is done.\n");
+            currentThread->Finish();
+            break;
+        default:
+            printf("Unexpected user mode exception %d %d\n", which, type);
+	        ASSERT(FALSE);
+        }
     }
     else if(which == PageFaultException){
-        if(machine->tlb != NULL){
-            //TLB缺页处理
-            TLBPageFault();
-        }
-        else{
-            //页表缺页
-            printf("If you see this, the program must be wrong.\n");
-        }
+        //TLB缺页处理
+        printf("TLBPageFaultException,reading from pageTable.\n");
+        UpdateTLB();  
     }
     else {
 	    printf("Unexpected user mode exception %d %d\n", which, type);

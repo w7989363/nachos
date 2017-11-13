@@ -58,11 +58,22 @@ Machine::Machine(bool debug)
 
     for (i = 0; i < NumTotalRegs; i++)
         registers[i] = 0;
+    
+    //初始化实存和虚存
     mainMemory = new char[MemorySize];
-    for (i = 0; i < MemorySize; i++)
-      	mainMemory[i] = 0;
+    swapspace = new char[MemorySize];
+    for (i = 0; i < MemorySize; i++){
+        mainMemory[i] = i;
+        swapspace[i] = i;
+    }
     //初始化bitmap,每一位控制一页
     bitmap = new BitMap(NumPhysPages);
+    swapoffset = 0;
+    // fileSystem->Create("swapfile", MemorySize);
+    // swap = fileSystem->Open("swapfile");
+    // ASSERT(swap != NULL);
+
+
 #ifdef USE_TLB
     tlb = new TranslationEntry[TLBSize];
     for (i = 0; i < TLBSize; i++)
@@ -91,6 +102,7 @@ Machine::~Machine()
     // float hitRate = (float)machine->tlb_hit/(machine->tlb_hit + machine->tlb_miss);
     // printf("tlb_hit: %d, tlb_miss: %d, hit_rate: %f\n", machine->tlb_hit,machine->tlb_miss,hitRate);
     delete [] mainMemory;
+    delete [] swapspace;
     if (tlb != NULL)
         delete [] tlb;
 }

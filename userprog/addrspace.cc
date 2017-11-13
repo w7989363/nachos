@@ -84,16 +84,24 @@ AddrSpace::AddrSpace(OpenFile *executable)
 						// virtual memory
 
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
-					numPages, size);
+                    numPages, size);
+                    
+    //每个用户空间占用连续的一块虚存，
+    //设置用户空间的虚拟页号偏移量
+    vpnoffset = machine->swapoffset;
+    //设置已使用虚存的页偏移量
+    machine->swapoffset += numPages;
+    ASSERT(machine->swapoffset <= NumPhysPages);
 // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-        pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-        //由bitmap控制物理内存分配
-        pageTable[i].physicalPage = machine->bitmap->Find();
-        //物理内存满
-        ASSERT(pageTable[i].physicalPage != -1);
-        pageTable[i].valid = TRUE;
+        pageTable[i].virtualPage = vpnoffset + i;	// for now, virtual page # = phys page #
+        // //由bitmap控制物理内存分配
+        // pageTable[i].physicalPage = machine->bitmap->Find();
+        // //物理内存满
+        // ASSERT(pageTable[i].physicalPage != -1);
+        pageTable[i].physicalPage = -1;
+        pageTable[i].valid = FALSE;
         pageTable[i].use = FALSE;
         pageTable[i].dirty = FALSE;
         pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
@@ -109,7 +117,17 @@ AddrSpace::AddrSpace(OpenFile *executable)
     if (noffH.code.size > 0) {
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
+        //将代码段写入虚存数组
+        int pos = noffH.code.inFileAddr;
+        for(i = 0; i < noffH.code.size; i++){
+            int vpn = (noffH.code.virtualAddr + i) / PageSize;
+            int offset = (noffH.code.virtualAddr + i) % PageSize;
+            //int phyaddr = pageTable[vpn].physicalPage * PageSize + offset;
+            ASSERT((vpn+vpnoffset)*PageSize + offset < MemorySize);
+            executable->ReadAt(&(machine->swapspace[(vpn+vpnoffset)*PageSize + offset]), 1, pos++);
+        }
         //executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),noffH.code.size, noffH.code.inFileAddr);
+        /*将代码段逐个字节写入内存
         int pos = noffH.code.inFileAddr;
         for(i = 0; i < noffH.code.size; i++){
             int vpn = (noffH.code.virtualAddr + i) / PageSize;
@@ -117,11 +135,24 @@ AddrSpace::AddrSpace(OpenFile *executable)
             int phyaddr = pageTable[vpn].physicalPage * PageSize + offset;
             executable->ReadAt(&(machine->mainMemory[phyaddr]), 1, pos++);
         }
+        */
+        //printf("codesize:%d,infileaddr:%d,vaddr:%d\n",noffH.code.size,noffH.code.inFileAddr,noffH.code.virtualAddr);
+        //printf("dataszie:%d,infileaddr:%d,vaddr:%d\n",noffH.initData.size,noffH.initData.inFileAddr,noffH.initData.virtualAddr);
     }
     if (noffH.initData.size > 0) {
         DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
 			noffH.initData.virtualAddr, noffH.initData.size);
+        //将数据段写入虚存数组
+        int pos = noffH.initData.inFileAddr;
+        for(i = 0; i < noffH.initData.size; i++){
+            int vpn = (noffH.initData.virtualAddr + i) / PageSize;
+            int offset = (noffH.initData.virtualAddr + i) % PageSize;
+            //int phyaddr = pageTable[vpn].physicalPage * PageSize + offset;
+            executable->ReadAt(&(machine->swapspace[(vpn+vpnoffset)*PageSize + offset]), 1, pos++);
+        }
+
         //executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),noffH.initData.size, noffH.initData.inFileAddr);
+        /*将数据段逐个字节写入内存
         int pos = noffH.initData.inFileAddr;
         for(i = 0; i < noffH.initData.size; i++){
             int vpn = (noffH.initData.virtualAddr + i) / PageSize;
@@ -129,10 +160,11 @@ AddrSpace::AddrSpace(OpenFile *executable)
             int phyaddr = pageTable[vpn].physicalPage * PageSize + offset;
             executable->ReadAt(&(machine->mainMemory[phyaddr]), 1, pos++);
         }
+        */
     }
 
     //输出内存占用量
-    machine->bitmap->PrintUsage();
+    //machine->bitmap->PrintUsage();
 }
 
 //----------------------------------------------------------------------
