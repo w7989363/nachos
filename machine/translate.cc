@@ -208,7 +208,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     vpn = (unsigned) virtAddr / PageSize;
     offset = (unsigned) virtAddr % PageSize;
 	
-	/*
+
 	//首先查找TLB
 	//维护LRU_mark，每项先+1,后面命中则令某一项为0
 	for(int k = 0; k < TLBSize; k++){
@@ -231,8 +231,9 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 					// the page may be in memory,
 					// but not in the TLB
 	}
-	*/
+
 	//利用倒排页表查询
+	/*
 	for(int k = 0; k < NumPhysPages; k++){
 		if(rPageTable[k].virtualPage == vpn && 
 			rPageTable[k].tid == currentThread->getTid() && 
@@ -243,7 +244,9 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 		}
 	}
 	ASSERT(entry != NULL);
-	
+	*/
+
+	//以下代码适用于用户程序全部拷贝进内存的情况
     // if (tlb == NULL) {		// => page table => vpn is index into table
 	// 	if (vpn >= pageTableSize) {
 	// 		DEBUG('a', "virtual page # %d too large for page table size %d!\n", 

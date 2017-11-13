@@ -118,7 +118,6 @@ AddrSpace::AddrSpace(OpenFile *executable)
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
         //将代码段写入虚存数组
-        /*
         int pos = noffH.code.inFileAddr;
         for(i = 0; i < noffH.code.size; i++){
             int vpn = (noffH.code.virtualAddr + i) / PageSize;
@@ -127,9 +126,9 @@ AddrSpace::AddrSpace(OpenFile *executable)
             ASSERT((vpn+vpnoffset)*PageSize + offset < MemorySize);
             executable->ReadAt(&(machine->swapspace[(vpn+vpnoffset)*PageSize + offset]), 1, pos++);
         }
-        */
         //executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),noffH.code.size, noffH.code.inFileAddr);
-        //将代码段逐个字节写入内存
+        //将代码段逐个字节写入内存，倒排页表
+        /*
         int pos = noffH.code.inFileAddr;
         int ppn = -1;
         int lastvpn = noffH.code.virtualAddr / PageSize -1;
@@ -149,7 +148,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
             machine->rPageTable[ppn].tid = currentThread->getTid();
             lastvpn = vpn;
         }
-        printf("1\n");
+        */
         //printf("codesize:%d,infileaddr:%d,vaddr:%d\n",noffH.code.size,noffH.code.inFileAddr,noffH.code.virtualAddr);
         //printf("dataszie:%d,infileaddr:%d,vaddr:%d\n",noffH.initData.size,noffH.initData.inFileAddr,noffH.initData.virtualAddr);
     }
@@ -177,7 +176,6 @@ AddrSpace::AddrSpace(OpenFile *executable)
         }
         */
     }
-    printf("2\n");
     //输出内存占用量
     //machine->bitmap->PrintUsage();
 }
