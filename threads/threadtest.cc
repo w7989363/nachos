@@ -342,12 +342,12 @@ ThreadTest()
 
 #ifdef USER_PROGRAM
 void usertest1(){
-    char* file = "./test/test";
+    char* file = "./test/halt";
     StartProcess(file);
 }
 
 void usertest2(){
-    char* file = "./test/test";
+    char* file = "./test/halt";
     StartProcess(file);
 }
 

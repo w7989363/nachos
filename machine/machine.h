@@ -187,6 +187,8 @@ class Machine {
 
     TranslationEntry *pageTable;
 	unsigned int pageTableSize;
+
+	TranslationEntry *rPageTable;
 	
 	int tlb_hit;	//tlb hit计数器
 	int tlb_miss;	//tlb_miss计数器

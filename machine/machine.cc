@@ -72,6 +72,16 @@ Machine::Machine(bool debug)
     // fileSystem->Create("swapfile", MemorySize);
     // swap = fileSystem->Open("swapfile");
     // ASSERT(swap != NULL);
+    rPageTable = new TranslationEntry[NumPhysPages];
+    for(i = 0; i < NumPhysPages; i++){
+        rPageTable[i].physicalPage = i;
+        rPageTable[i].virtualPage = -1;
+        rPageTable[i].valid = FALSE;
+        rPageTable[i].readOnly = FALSE;
+        rPageTable[i].use = FALSE;
+        rPageTable[i].dirty = FALSE;
+        rPageTable[i].tid = -1;
+    }
 
 
 #ifdef USE_TLB
@@ -99,10 +109,19 @@ Machine::Machine(bool debug)
 
 Machine::~Machine()
 {
+    for(int i = 0; i<NumPhysPages; i++){
+        if(rPageTable[i].valid){
+            printf("ppn:%d, vpn:%d, tid:%d\n",i,rPageTable[i].virtualPage,rPageTable[i].tid);
+        }
+        else{
+            printf("ppn:%d, unused.\n",i);
+        }
+    }
     // float hitRate = (float)machine->tlb_hit/(machine->tlb_hit + machine->tlb_miss);
     // printf("tlb_hit: %d, tlb_miss: %d, hit_rate: %f\n", machine->tlb_hit,machine->tlb_miss,hitRate);
     delete [] mainMemory;
     delete [] swapspace;
+    delete [] rPageTable;
     if (tlb != NULL)
         delete [] tlb;
 }

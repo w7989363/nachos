@@ -118,6 +118,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
         //将代码段写入虚存数组
+        /*
         int pos = noffH.code.inFileAddr;
         for(i = 0; i < noffH.code.size; i++){
             int vpn = (noffH.code.virtualAddr + i) / PageSize;
@@ -126,16 +127,29 @@ AddrSpace::AddrSpace(OpenFile *executable)
             ASSERT((vpn+vpnoffset)*PageSize + offset < MemorySize);
             executable->ReadAt(&(machine->swapspace[(vpn+vpnoffset)*PageSize + offset]), 1, pos++);
         }
+        */
         //executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),noffH.code.size, noffH.code.inFileAddr);
-        /*将代码段逐个字节写入内存
+        //将代码段逐个字节写入内存
         int pos = noffH.code.inFileAddr;
+        int ppn = -1;
+        int lastvpn = noffH.code.virtualAddr / PageSize -1;
         for(i = 0; i < noffH.code.size; i++){
             int vpn = (noffH.code.virtualAddr + i) / PageSize;
+            printf("lvpn:%d, vpn:%d\n",lastvpn,vpn);
+            if(lastvpn != vpn){
+                ppn = machine->bitmap->Find();
+            }
+            ASSERT(ppn != -1);
             int offset = (noffH.code.virtualAddr + i) % PageSize;
-            int phyaddr = pageTable[vpn].physicalPage * PageSize + offset;
+            int phyaddr = ppn * PageSize + offset;
             executable->ReadAt(&(machine->mainMemory[phyaddr]), 1, pos++);
+            ASSERT(phyaddr/PageSize < NumPhysPages);
+            machine->rPageTable[ppn].virtualPage = vpn;
+            machine->rPageTable[ppn].valid = TRUE;
+            machine->rPageTable[ppn].tid = currentThread->getTid();
+            lastvpn = vpn;
         }
-        */
+        printf("1\n");
         //printf("codesize:%d,infileaddr:%d,vaddr:%d\n",noffH.code.size,noffH.code.inFileAddr,noffH.code.virtualAddr);
         //printf("dataszie:%d,infileaddr:%d,vaddr:%d\n",noffH.initData.size,noffH.initData.inFileAddr,noffH.initData.virtualAddr);
     }
@@ -152,7 +166,8 @@ AddrSpace::AddrSpace(OpenFile *executable)
         }
 
         //executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),noffH.initData.size, noffH.initData.inFileAddr);
-        /*将数据段逐个字节写入内存
+        //将数据段逐个字节写入内存
+        /*
         int pos = noffH.initData.inFileAddr;
         for(i = 0; i < noffH.initData.size; i++){
             int vpn = (noffH.initData.virtualAddr + i) / PageSize;
@@ -162,7 +177,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
         }
         */
     }
-
+    printf("2\n");
     //输出内存占用量
     //machine->bitmap->PrintUsage();
 }
