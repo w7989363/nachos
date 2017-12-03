@@ -109,14 +109,14 @@ Machine::Machine(bool debug)
 
 Machine::~Machine()
 {
-    for(int i = 0; i<NumPhysPages; i++){
-        if(rPageTable[i].valid){
-            printf("ppn:%d, vpn:%d, tid:%d\n",i,rPageTable[i].virtualPage,rPageTable[i].tid);
-        }
-        else{
-            printf("ppn:%d, unused.\n",i);
-        }
-    }
+    // for(int i = 0; i<NumPhysPages; i++){
+    //     if(rPageTable[i].valid){
+    //         printf("ppn:%d, vpn:%d, tid:%d\n",i,rPageTable[i].virtualPage,rPageTable[i].tid);
+    //     }
+    //     else{
+    //         printf("ppn:%d, unused.\n",i);
+    //     }
+    // }
     // float hitRate = (float)machine->tlb_hit/(machine->tlb_hit + machine->tlb_miss);
     // printf("tlb_hit: %d, tlb_miss: %d, hit_rate: %f\n", machine->tlb_hit,machine->tlb_miss,hitRate);
     delete [] mainMemory;

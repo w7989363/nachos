@@ -81,6 +81,9 @@ FileSystem::FileSystem(bool format)
 { 
     DEBUG('f', "Initializing the file system.\n");
     if (format) {
+
+        printf("Initializing Disk...\n");
+
         BitMap *freeMap = new BitMap(NumSectors);
         Directory *directory = new Directory(NumDirEntries);
 	    FileHeader *mapHdr = new FileHeader;
@@ -96,18 +99,22 @@ FileSystem::FileSystem(bool format)
         // Second, allocate space for the data blocks containing the contents
         // of the directory and bitmap files.  There better be enough space!
 
+        printf("allocate sector for bitmap.\n");
+
 	    ASSERT(mapHdr->Allocate(freeMap, FreeMapFileSize));
+
+        printf("allocate sector for dirHdr.\n");
+
 	    ASSERT(dirHdr->Allocate(freeMap, DirectoryFileSize));
 
         // Flush the bitmap and directory FileHeaders back to disk
         // We need to do this before we can "Open" the file, since open
         // reads the file header off of disk (and currently the disk has garbage
         // on it!).
-
         DEBUG('f', "Writing headers back to disk.\n");
         mapHdr->WriteBack(FreeMapSector);    
         dirHdr->WriteBack(DirectorySector);
-
+        //printf("129byteToSector: %d\n", dirHdr->ByteToSector(129));
         // OK to open the bitmap and directory files now
         // The file system operations assume these two files are left open
         // while Nachos is running.
@@ -122,9 +129,9 @@ FileSystem::FileSystem(bool format)
         // to hold the file data for the directory and bitmap.
 
         DEBUG('f', "Writing bitmap and directory back to disk.\n");
+
         freeMap->WriteBack(freeMapFile);	 // flush changes to disk
         directory->WriteBack(directoryFile);
-
         if (DebugIsEnabled('f')) {
             freeMap->Print();
             directory->Print();
@@ -141,6 +148,8 @@ FileSystem::FileSystem(bool format)
         freeMapFile = new OpenFile(FreeMapSector);
         directoryFile = new OpenFile(DirectorySector);
     }
+
+    
 }
 
 //----------------------------------------------------------------------
@@ -203,7 +212,7 @@ FileSystem::Create(char *name, int initialSize)
             else {	
                 success = TRUE;
                 // everthing worked, flush all changes back to disk
-                hdr->WriteBack(sector); 		
+                hdr->WriteBack(sector); 	
                 directory->WriteBack(directoryFile);
                 freeMap->WriteBack(freeMapFile);
             }
@@ -212,6 +221,7 @@ FileSystem::Create(char *name, int initialSize)
         delete freeMap;
     }
     delete directory;
+    
     return success;
 }
 

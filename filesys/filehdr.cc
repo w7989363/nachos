@@ -26,6 +26,7 @@
 
 #include "system.h"
 #include "filehdr.h"
+#include "time.h"
 
 //----------------------------------------------------------------------
 // FileHeader::Allocate
@@ -43,11 +44,61 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 { 
     numBytes = fileSize;
     numSectors  = divRoundUp(fileSize, SectorSize);
+    printf("file total sector: %d\n",numSectors);
     if (freeMap->NumClear() < numSectors)
 	    return FALSE;		// not enough space
+    
+    //创建时间
+    time_t timep;
+    time(&timep);
+    strftime(createTime, sizeof(createTime), "%Y-%m-%d %H:%M:%S", localtime(&timep));
+    printf("createTime: %s\n",createTime);
 
-    for (int i = 0; i < numSectors; i++)
-	    dataSectors[i] = freeMap->Find();
+    //构建索引表
+    if(numSectors <= NumDirect){
+        //只需要一级索引
+        for (int i = 0; i < numSectors; i++){
+            dataSectors[i] = freeMap->Find();
+            //printf("allocate sector for data :%d\n",dataSectors[i]);
+        }
+    }
+    else{
+        //需要二级索引
+        //首先为一级索引分配扇区
+        for (int i = 0; i < NumDirect; i++){
+            dataSectors[i] = freeMap->Find();
+            //printf("allocate sector for data :%d\n",dataSectors[i]);
+        }
+        //计算还需要多少个扇区 （直接用常量做减法会出错）
+        int leftSectors = -(NumDirect-numSectors);
+        //一个扇区能存放多少一级索引
+        int numFirstIndexInaSector = SectorSize / sizeof(int);
+        //计算需要多少个二级索引
+        int numSecondIndex = divRoundUp(leftSectors, numFirstIndexInaSector);
+        //为每个二级索引分配扇区
+        for(int i = 0; i < numSecondIndex; i++){
+            //二级索引指向的扇区
+            secondSectors[i] = freeMap->Find();
+            //printf("allocate sector for secondIndex :%d\n",secondSectors[i]);
+            //二级索引指向的扇区存放的一级索引表
+            int dataSecondSectors[numFirstIndexInaSector];
+            for(int j = 0; j < numFirstIndexInaSector; j++){
+                if(leftSectors == 0){
+                    //如果没有剩余扇区未分配，则跳出循环
+                    break;
+                }
+                //为一级索引表分配扇区
+                dataSecondSectors[j] = freeMap->Find();
+                //printf("allocate sector for data :%d\n",dataSecondSectors[j]);
+                //剩余扇区递减
+                leftSectors--;
+            }
+            //将一级索引表写入扇区
+            synchDisk->WriteSector(secondSectors[i],(char*)dataSecondSectors);
+        }
+
+    }
+    
     return TRUE;
 }
 
@@ -61,10 +112,52 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 void 
 FileHeader::Deallocate(BitMap *freeMap)
 {
-    for (int i = 0; i < numSectors; i++) {
-	    ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
-	    freeMap->Clear((int) dataSectors[i]);
+    //只用到了一级索引
+    if(numSectors <= NumDirect){
+        for (int i = 0; i < numSectors; i++) {
+	        ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
+	        freeMap->Clear((int) dataSectors[i]);
+            //printf("Deallocate sector for data :%d\n",dataSectors[i]);
+        }
     }
+    //有二级索引
+    else{
+        //释放一级索引
+        for (int i = 0; i < NumDirect; i++){
+            ASSERT(freeMap->Test((int) dataSectors[i]));  // ought to be marked!
+	        freeMap->Clear((int) dataSectors[i]);
+            //printf("Deallocate sector for data :%d\n",dataSectors[i]);
+        }
+        //计算还需要释放多少个扇区
+        int leftSectors = -(NumDirect-numSectors);
+        //一个扇区能存放多少一级索引
+        int numFirstIndexInaSector = SectorSize / sizeof(int);
+        //计算需要释放多少个二级索引
+        int numSecondIndex = divRoundUp(leftSectors, numFirstIndexInaSector);
+        for(int i = 0; i < numSecondIndex; i++){
+            //一级索引表
+            int dataSecondSectors[numFirstIndexInaSector];
+            //从二级索引指向的扇区读出一级索引表
+            synchDisk->ReadSector(secondSectors[i], (char*)dataSecondSectors);  
+            for(int j = 0; j < numFirstIndexInaSector; j++){
+                if(leftSectors == 0){
+                    //如果没有剩余扇区，则跳出循环
+                    break;
+                }
+                //释放
+                ASSERT(freeMap->Test((int) dataSecondSectors[j]));  // ought to be marked!
+	            freeMap->Clear((int) dataSecondSectors[j]);
+                //printf("Deallocate sector for data :%d\n",dataSecondSectors[j]);
+                //剩余扇区递减
+                leftSectors--;
+            }
+            //释放二级索引表占用的扇区
+            ASSERT(freeMap->Test((int) secondSectors[i]));  // ought to be marked!
+	        freeMap->Clear((int) secondSectors[i]);
+            //printf("Deallocate sector for secondIndex :%d\n",secondSectors[i]);
+        }
+    }
+    
 }
 
 //----------------------------------------------------------------------
@@ -106,7 +199,27 @@ FileHeader::WriteBack(int sector)
 int
 FileHeader::ByteToSector(int offset)
 {
-    return(dataSectors[offset / SectorSize]);
+    int num = divRoundDown(offset, SectorSize) + 1;
+    //内容在一级索引
+    if(num <= NumDirect){
+        return(dataSectors[offset / SectorSize]);
+    }
+    //内容在二级索引
+    else{
+        int numDirect = (int)NumDirect;
+        //一个扇区能存放多少一级索引
+        int numFirstIndexInaSector = SectorSize / sizeof(int);
+        //二级索引
+        int secIndex = (num - numDirect - 1) / numFirstIndexInaSector;
+        //一级索引
+        int firIndex = (num - numDirect - 1) % numFirstIndexInaSector;
+        int dataSecondSectors[numFirstIndexInaSector];
+        //读取一级索引表所在扇区
+        synchDisk->ReadSector(secondSectors[secIndex],(char*)dataSecondSectors);
+        return dataSecondSectors[firIndex];
+        
+    }
+    
 }
 
 //----------------------------------------------------------------------
