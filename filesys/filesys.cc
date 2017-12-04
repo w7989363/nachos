@@ -47,7 +47,6 @@
 
 #include "disk.h"
 #include "bitmap.h"
-#include "directory.h"
 #include "filehdr.h"
 #include "filesys.h"
 
@@ -101,11 +100,11 @@ FileSystem::FileSystem(bool format)
 
         printf("allocate sector for bitmap.\n");
 
-	    ASSERT(mapHdr->Allocate(freeMap, FreeMapFileSize));
+	    ASSERT(mapHdr->Allocate(freeMap, FreeMapFileSize, ""));
 
         printf("allocate sector for dirHdr.\n");
 
-	    ASSERT(dirHdr->Allocate(freeMap, DirectoryFileSize));
+	    ASSERT(dirHdr->Allocate(freeMap, DirectoryFileSize, ""));
 
         // Flush the bitmap and directory FileHeaders back to disk
         // We need to do this before we can "Open" the file, since open
@@ -182,9 +181,10 @@ FileSystem::FileSystem(bool format)
 //----------------------------------------------------------------------
 
 bool
-FileSystem::Create(char *name, int initialSize)
+FileSystem::Create(char *name, int initialSize, bool isDir, char *path)
 {
-    Directory *directory;
+    Directory *rootDir;
+    Directory *curDir;
     BitMap *freeMap;
     FileHeader *hdr;
     int sector;
@@ -192,35 +192,68 @@ FileSystem::Create(char *name, int initialSize)
 
     DEBUG('f', "Creating file %s, size %d\n", name, initialSize);
 
-    directory = new Directory(NumDirEntries);
-    directory->FetchFrom(directoryFile);
+    rootDir = new Directory(NumDirEntries);
+    rootDir->FetchFrom(directoryFile);
 
-    if (directory->Find(name) != -1)
-        success = FALSE;			// file is already in directory
+    //rootDir->FindSector(name,path);
+    curDir = OpenDir(path);
+    if(curDir == NULL){
+        //打开目录失败
+        printf("open dir fail.\n");
+        return FALSE;
+    }
+    if (curDir->Find(name) != -1)
+        //文件名存在
+        success = FALSE;			
     else {	
+        //没有重名，可以创建
+        //为文件头申请扇区
         freeMap = new BitMap(NumSectors);
         freeMap->FetchFrom(freeMapFile);
         sector = freeMap->Find();	// find a sector to hold the file header
-    	if (sector == -1) 		
+        if (sector == -1) {
             success = FALSE;		// no free block for file header 
-        else if (!directory->Add(name, sector))
+        }	
+        //当前目录添加目录项
+        if (!curDir->Add(name, sector, isDir)){
+            //目录满
             success = FALSE;	// no space in directory
-        else {
-            hdr = new FileHeader;
-            if (!hdr->Allocate(freeMap, initialSize))
-                success = FALSE;	// no space on disk for data
-            else {	
-                success = TRUE;
-                // everthing worked, flush all changes back to disk
-                hdr->WriteBack(sector); 	
-                directory->WriteBack(directoryFile);
-                freeMap->WriteBack(freeMapFile);
-            }
-                delete hdr;
         }
+        else {
+            //添加目录项成功
+            hdr = new FileHeader;
+            //新建目录
+            if(isDir){
+                //初始化目录文件头
+                ASSERT(hdr->Allocate(freeMap, DirectoryFileSize, path));
+                //文件头写回磁盘
+                hdr->WriteBack(sector); 
+                //新目录的文件控制结构，用于目录文件写回磁盘
+                OpenFile* file = new OpenFile(sector);
+                Directory* newDir = new Directory(NumDirEntries);
+                //目录文件写回磁盘
+                newDir->WriteBack(file);
+                success = TRUE;
+            }
+            //新建文件
+            else{
+                //初始化新文件头（申请扇区，建立索引）
+                ASSERT(hdr->Allocate(freeMap, initialSize, path));
+                //文件头初始化成功，申请data扇区成功
+                success = TRUE;
+                //文件头写回磁盘
+                hdr->WriteBack(sector); 
+            }
+            //当前目录文件写回磁盘	
+            curDir->WriteBack(curDirFile);
+            //bitmap写回磁盘
+            freeMap->WriteBack(freeMapFile);
+            delete hdr;
+        }	
+
         delete freeMap;
     }
-    delete directory;
+    delete rootDir;
     
     return success;
 }
@@ -236,19 +269,52 @@ FileSystem::Create(char *name, int initialSize)
 //----------------------------------------------------------------------
 
 OpenFile *
-FileSystem::Open(char *name)
+FileSystem::Open(char *name, char *path)
 { 
-    Directory *directory = new Directory(NumDirEntries);
+    //打开路径所指目录
+    Directory *directory = OpenDir(path);
+    ASSERT(directory!=NULL);
     OpenFile *openFile = NULL;
     int sector;
 
     DEBUG('f', "Opening file %s\n", name);
-    directory->FetchFrom(directoryFile);
     sector = directory->Find(name); 
     if (sector >= 0) 		
 	    openFile = new OpenFile(sector);	// name was found in directory 
     delete directory;
     return openFile;				// return NULL if not found
+}
+
+
+//打开path对应的文件目录，失败返回NULL
+Directory* FileSystem::OpenDir(char *path){
+    Directory *directory = new Directory(NumDirEntries);
+    OpenFile *openFile = new OpenFile(DirectorySector);
+    char str[strlen(path)+1] = {"0"};
+    strcpy(str, path);
+    const char *d = "\/";
+    char *dirName;
+    int sector;
+
+    //打开根目录
+    directory->FetchFrom(directoryFile);
+    //分解path
+    dirName = strtok(str, d);
+    //逐级查找
+    while(dirName){
+        sector = directory->Find(dirName);
+        if(sector == -1){
+            //没有匹配的文件夹
+            return NULL;
+        }
+        delete openFile;
+        openFile = new OpenFile(sector);
+        directory->FetchFrom(openFile);
+        //printf("Entering dir: %s\n",dirName);
+        dirName = strtok(NULL, d);
+    }
+    curDirFile = openFile;
+    return directory;
 }
 
 //----------------------------------------------------------------------
@@ -266,19 +332,34 @@ FileSystem::Open(char *name)
 //----------------------------------------------------------------------
 
 bool
-FileSystem::Remove(char *name)
+FileSystem::Remove(char *name, char *path)
 { 
     Directory *directory;
     BitMap *freeMap;
     FileHeader *fileHdr;
     int sector;
     
-    directory = new Directory(NumDirEntries);
-    directory->FetchFrom(directoryFile);
+    directory = OpenDir(path);
     sector = directory->Find(name);
     if (sector == -1) {
        delete directory;
        return FALSE;			 // file not found 
+    }
+    //如果是目录，递归删除
+    if(directory->IsDir(name)){
+        //打开目录
+        char* p = new char[40];
+        strcat(p, path);
+        strcat(p, name);
+        strcat(p, "\/");
+        printf("%s\n",p);
+        Directory *dir = OpenDir(p);
+        for(int i = 0; i < NumDirEntries; i++){
+            if(dir->table[i].inUse){
+                Remove(dir->table[i].name, p);
+            }
+        }
+        delete dir;
     }
     fileHdr = new FileHeader;
     fileHdr->FetchFrom(sector);
@@ -306,11 +387,27 @@ FileSystem::Remove(char *name)
 void
 FileSystem::List()
 {
-    Directory *directory = new Directory(NumDirEntries);
+    ListAll("\/");
 
-    directory->FetchFrom(directoryFile);
-    directory->List();
-    delete directory;
+}
+
+//递归列出所有文件夹内容
+void FileSystem::ListAll(char *path){
+    Directory* dir = OpenDir(path);
+    printf("%s:\n",path);
+    dir->List();
+
+    for(int i = 0; i < NumDirEntries; i++){
+        if(dir->table[i].inUse && dir->table[i].isDir){
+            //获取目录名，拼接path
+            char* p = new char[40];
+            strcat(p, path);
+            strcat(p, dir->table[i].name);
+            strcat(p, "\/");
+            ListAll(p);
+        }
+    }
+    delete dir;
 }
 
 //----------------------------------------------------------------------

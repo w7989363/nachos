@@ -59,8 +59,8 @@ extern int testnum;
 
 // External functions used by this file
 
-extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
-extern void Print(char *file), PerformanceTest(void);
+extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile, char *path);
+extern void Print(char *file, char *path), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
 
@@ -144,17 +144,17 @@ main(int argc, char **argv)
 #endif // USER_PROGRAM
 #ifdef FILESYS
 	if (!strcmp(*argv, "-cp")) { 		// copy from UNIX to Nachos
-	    ASSERT(argc > 2);
-	    Copy(*(argv + 1), *(argv + 2));
-	    argCount = 3;
+	    ASSERT(argc > 3);
+	    Copy(*(argv + 1), *(argv + 2), *(argv + 3));
+	    argCount = 4;
 	} else if (!strcmp(*argv, "-p")) {	// print a Nachos file
-	    ASSERT(argc > 1);
-	    Print(*(argv + 1));
-	    argCount = 2;
+	    ASSERT(argc > 2);
+	    Print(*(argv + 1), *(argv + 2));
+	    argCount = 3;
 	} else if (!strcmp(*argv, "-r")) {	// remove Nachos file
-	    ASSERT(argc > 1);
-	    fileSystem->Remove(*(argv + 1));
-	    argCount = 2;
+	    ASSERT(argc > 2);
+	    fileSystem->Remove(*(argv + 1),*(argv + 2));
+	    argCount = 3;
 	} else if (!strcmp(*argv, "-l")) {	// list Nachos directory
             fileSystem->List();
 	} else if (!strcmp(*argv, "-D")) {	// print entire filesystem

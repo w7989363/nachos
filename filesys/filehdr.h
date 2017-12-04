@@ -43,7 +43,7 @@
 
 class FileHeader {
   public:
-    bool Allocate(BitMap *bitMap, int fileSize);// Initialize a file header, 
+    bool Allocate(BitMap *bitMap, int fileSize, char *p);// Initialize a file header, 
 						//  including allocating space 
 						//  on disk for the file data
     void Deallocate(BitMap *bitMap);  		// De-allocate this file's 
@@ -59,11 +59,17 @@ class FileHeader {
 
     int FileLength();			// Return the length of the file 
 					// in bytes
+    int GetNumSectors() {return numSectors;}
+
+    void setFileLength(int n){ numBytes = n;}
 
     void Print();			// Print the contents of the file.
 
     char* getCreateTime() {return createTime;}
     char* getPath() {return path;}
+
+    //新申请n个数据扇区，更新索引表
+    bool AppendSectors(int n);
 
   private:
     char createTime[TimeLen];     //创建时间

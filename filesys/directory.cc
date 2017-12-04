@@ -24,6 +24,7 @@
 #include "utility.h"
 #include "filehdr.h"
 #include "directory.h"
+#include "string.h"
 
 //----------------------------------------------------------------------
 // Directory::Directory
@@ -91,7 +92,9 @@ int
 Directory::FindIndex(char *name)
 {
     for (int i = 0; i < tableSize; i++)
-        if (table[i].inUse && !strncmp(table[i].name, name, FileNameMaxLen))
+        // if (table[i].inUse && !strncmp(table[i].name, name, FileNameMaxLen))
+	    //     return i;
+        if (table[i].inUse && !strcmp(table[i].name, name))
 	        return i;
     return -1;		// name not in directory
 }
@@ -115,6 +118,7 @@ Directory::Find(char *name)
     return -1;
 }
 
+
 //----------------------------------------------------------------------
 // Directory::Add
 // 	Add a file into the directory.  Return TRUE if successful;
@@ -127,7 +131,7 @@ Directory::Find(char *name)
 //----------------------------------------------------------------------
 
 bool
-Directory::Add(char *name, int newSector)
+Directory::Add(char *name, int newSector, bool isDir)
 { 
     if (FindIndex(name) != -1)
 	    return FALSE;
@@ -135,8 +139,10 @@ Directory::Add(char *name, int newSector)
     for (int i = 0; i < tableSize; i++)
         if (!table[i].inUse) {
             table[i].inUse = TRUE;
-            strncpy(table[i].name, name, FileNameMaxLen); 
+            //strncpy(table[i].name, name, FileNameMaxLen); 
+            table[i].name = name;
             table[i].sector = newSector;
+            table[i].isDir = isDir;
             return TRUE;
 	    }
     return FALSE;	// no space.  Fix when we have extensible files.
@@ -166,12 +172,19 @@ Directory::Remove(char *name)
 // 	List all the file names in the directory. 
 //----------------------------------------------------------------------
 
+//返回name是否是目录
+bool Directory::IsDir(char *name){
+    int i = FindIndex(name);
+    return table[i].isDir;
+}
+
 void
 Directory::List()
 {
     for (int i = 0; i < tableSize; i++)
         if (table[i].inUse)
-	        printf("%s\n", table[i].name);
+	        printf("%s    ", table[i].name);
+    printf("\n");
 }
 
 //----------------------------------------------------------------------

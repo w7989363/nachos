@@ -37,6 +37,7 @@
 
 #include "copyright.h"
 #include "openfile.h"
+#include "directory.h"
 
 #ifdef FILESYS_STUB 		// Temporarily implement file system calls as 
 				// calls to UNIX, until the real file system
@@ -45,7 +46,7 @@ class FileSystem {
   public:
     FileSystem(bool format) {}
 
-    bool Create(char *name, int initialSize) { 
+    bool Create(char *name, int initialSize, bool isDir, char *path) { 
 		int fileDescriptor = OpenForWrite(name);
 
 		if (fileDescriptor == -1) return FALSE;
@@ -53,7 +54,7 @@ class FileSystem {
 		return TRUE; 
 	}
 
-    OpenFile* Open(char *name) {
+    OpenFile* Open(char *name, char *path) {
 		int fileDescriptor = OpenForReadWrite(name, FALSE);
 
 		if (fileDescriptor == -1) return NULL;
@@ -74,14 +75,19 @@ class FileSystem {
 					// the disk, so initialize the directory
     					// and the bitmap of free blocks.
 
-    bool Create(char *name, int initialSize);  	
+    bool Create(char *name, int initialSize, bool isDir, char *path);  	
 					// Create a file (UNIX creat)
 
-    OpenFile* Open(char *name); 	// Open a file (UNIX open)
+    OpenFile* Open(char *name, char *path); 	// Open a file (UNIX open)
 
-    bool Remove(char *name);  		// Delete a file (UNIX unlink)
+	//打开path对应的文件夹
+	Directory* OpenDir(char *path);
+
+    bool Remove(char *name, char *path);  		// Delete a file (UNIX unlink)
 
     void List();			// List all the files in the file system
+
+	void ListAll(char *path);
 
     void Print();			// List all the files and their contents
 
@@ -90,6 +96,8 @@ class FileSystem {
 					// represented as a file
    OpenFile* directoryFile;		// "Root" directory -- list of 
 					// file names, represented as a file
+
+	OpenFile* curDirFile;	//当前操作的目录文件
 };
 
 #endif // FILESYS

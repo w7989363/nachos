@@ -29,6 +29,7 @@
 
 OpenFile::OpenFile(int sector)
 { 
+    hdrSector = sector;
     hdr = new FileHeader;
     hdr->FetchFrom(sector);
     seekPosition = 0;
@@ -80,9 +81,9 @@ OpenFile::Read(char *into, int numBytes)
 }
 
 int
-OpenFile::Write(char *into, int numBytes)
+OpenFile::Write(char *from, int numBytes)
 {
-   int result = WriteAt(into, numBytes, seekPosition);
+   int result = WriteAt(from, numBytes, seekPosition);
    seekPosition += result;
    return result;
 }
@@ -146,21 +147,38 @@ OpenFile::ReadAt(char *into, int numBytes, int position)
 int
 OpenFile::WriteAt(char *from, int numBytes, int position)
 {
+    int numDataSectors = hdr->GetNumSectors();
     int fileLength = hdr->FileLength();
     int i, firstSector, lastSector, numSectors;
     bool firstAligned, lastAligned;
     char *buf;
 
-    if ((numBytes <= 0) || (position >= fileLength))
+    if ((numBytes <= 0) || (position > fileLength))
 	    return 0;				// check request
-    if ((position + numBytes) > fileLength)
-	    numBytes = fileLength - position;
+	    
     DEBUG('f', "Writing %d bytes at %d, from file of length %d.\n", 	
 			numBytes, position, fileLength);
 
     firstSector = divRoundDown(position, SectorSize);
     lastSector = divRoundDown(position + numBytes - 1, SectorSize);
     numSectors = 1 + lastSector - firstSector;
+
+    //如果超过文件当前大小，则修改文件大小
+    if ((position + numBytes) > fileLength){
+        //numBytes = fileLength - position;
+        hdr->setFileLength(position + numBytes);
+        //文件头有修改，写回磁盘
+        hdr->WriteBack(hdrSector);
+    }
+    //如果超过dataSectors可以容纳的大小，则申请更多sectors
+    if((lastSector + 1) > numDataSectors){
+        //申请失败
+        if(hdr->AppendSectors(lastSector + 1 - numDataSectors) == FALSE){
+            return 0;
+        }
+        //文件头有修改，写回磁盘
+        hdr->WriteBack(hdrSector);
+    }
 
     buf = new char[numSectors * SectorSize];
 

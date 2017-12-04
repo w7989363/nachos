@@ -120,6 +120,9 @@ Disk::ReadRequest(int sectorNumber, char* data)
 
     ASSERT(!active);				// only one request at a time
     ASSERT((sectorNumber >= 0));
+    if(sectorNumber >= NumSectors){
+        printf("try to read sector num: %d\n",sectorNumber);
+    }
     ASSERT((sectorNumber < NumSectors));
     
     DEBUG('d', "Reading from sector %d\n", sectorNumber);

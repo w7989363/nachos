@@ -29,7 +29,7 @@
 //----------------------------------------------------------------------
 
 void
-Copy(char *from, char *to)
+Copy(char *from, char *to, char *path)
 {
     FILE *fp;
     OpenFile* openFile;
@@ -38,8 +38,8 @@ Copy(char *from, char *to)
 
 // Open UNIX file
     if ((fp = fopen(from, "r")) == NULL) {	 
-	printf("Copy: couldn't open input file %s\n", from);
-	return;
+        printf("Copy: couldn't open input file %s\n", from);
+        return;
     }
 
 // Figure out length of UNIX file
@@ -49,19 +49,19 @@ Copy(char *from, char *to)
 
 // Create a Nachos file of the same length
     DEBUG('f', "Copying file %s, size %d, to file %s\n", from, fileLength, to);
-    if (!fileSystem->Create(to, fileLength)) {	 // Create Nachos file
-	printf("Copy: couldn't create output file %s\n", to);
-	fclose(fp);
-	return;
+    if (!fileSystem->Create(to, fileLength, 0, "\/abc\/aaa\/B")) {	 // Create Nachos file
+	    printf("Copy: couldn't create output file %s\n", to);
+	    fclose(fp);
+	    return;
     }
     
-    openFile = fileSystem->Open(to);
+    openFile = fileSystem->Open(to, path);
     ASSERT(openFile != NULL);
     
 // Copy the data in TransferSize chunks
     buffer = new char[TransferSize];
     while ((amountRead = fread(buffer, sizeof(char), TransferSize, fp)) > 0)
-	openFile->Write(buffer, amountRead);	
+	    openFile->Write(buffer, amountRead);	
     delete [] buffer;
 
 // Close the UNIX and the Nachos files
@@ -75,13 +75,13 @@ Copy(char *from, char *to)
 //----------------------------------------------------------------------
 
 void
-Print(char *name)
+Print(char *name, char *path)
 {
     OpenFile *openFile;    
     int i, amountRead;
     char *buffer;
 
-    if ((openFile = fileSystem->Open(name)) == NULL) {
+    if ((openFile = fileSystem->Open(name,path)) == NULL) {
 	printf("Print: unable to open file %s\n", name);
 	return;
     }
@@ -111,7 +111,7 @@ Print(char *name)
 #define FileName 	"TestFile"
 #define Contents 	"1234567890"
 #define ContentSize 	strlen(Contents)
-#define FileSize 	((int)(ContentSize * 800))
+#define FileSize 	((int)(ContentSize * 400))
 
 static void 
 FileWrite()
@@ -119,13 +119,15 @@ FileWrite()
     OpenFile *openFile;    
     int i, numBytes;
 
+    
+
     printf("Sequential write of %d byte file, in %d byte chunks\n", FileSize, ContentSize);
-    if (!fileSystem->Create(FileName, FileSize)) {
+    if (!fileSystem->Create(FileName, FileSize, 0, "\/")) {
         printf("Perf test: can't create %s\n", FileName);
         return;
     }
     
-    openFile = fileSystem->Open(FileName);
+    openFile = fileSystem->Open(FileName, "\/");
     
     if (openFile == NULL) {
 	    printf("Perf test: unable to open %s\n", FileName);
@@ -134,6 +136,19 @@ FileWrite()
     for (i = 0; i < FileSize; i += ContentSize) {
         numBytes = openFile->Write(Contents, ContentSize);
         if (numBytes < 10) {
+            printf("i:%d\n",i);
+            printf("Perf test: unable to write %s\n", FileName);
+            delete openFile;
+            return;
+        }
+    }
+    //再写一次
+    for (; i < FileSize*2; i += ContentSize) {
+        printf("i:%d\n",i);
+        numBytes = openFile->Write(Contents, ContentSize);
+        
+        if (numBytes < 10) {
+            
             printf("Perf test: unable to write %s\n", FileName);
             delete openFile;
             return;
@@ -152,7 +167,7 @@ FileRead()
     printf("Sequential read of %d byte file, in %d byte chunks\n", 
 	FileSize, ContentSize);
 
-    if ((openFile = fileSystem->Open(FileName)) == NULL) {
+    if ((openFile = fileSystem->Open(FileName, "\/")) == NULL) {
 	printf("Perf test: unable to open file %s\n", FileName);
 	delete [] buffer;
 	return;
@@ -174,13 +189,22 @@ void
 PerformanceTest()
 {
     printf("Starting file system performance test:\n");
-    stats->Print();
+
+    //创建目录
+    // fileSystem->Create("dirA", 0, 1, "\/");
+    // fileSystem->Create("dirB", 0, 1, "\/");
+    // fileSystem->Create("test1", 100, 0, "\/");
+    // fileSystem->Create("dirC", 0, 1, "\/dirA");
+    // fileSystem->Create("dirD", 0, 1, "\/dirA\/dirC");
+    // fileSystem->Create("test2", 50, 0, "\/dirA\/dirC");
+    // fileSystem->Create("test3", 50, 0, "\/dirA\/dirC\/dirD");
+
     FileWrite();
-    FileRead();
-    if (!fileSystem->Remove(FileName)) {
-      printf("Perf test: unable to remove %s\n", FileName);
-      return;
-    }
-    stats->Print();
+    //FileRead();
+    // if (!fileSystem->Remove(FileName)) {
+    //   printf("Perf test: unable to remove %s\n", FileName);
+    //   return;
+    // }
+
 }
 

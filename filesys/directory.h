@@ -34,9 +34,10 @@ class DirectoryEntry {
     bool inUse;				// Is this directory entry in use?
     int sector;				// Location on disk to find the 
 					//   FileHeader for this file 
-    char name[FileNameMaxLen + 1];	// Text name for file, with +1 for 
+    //char name[FileNameMaxLen + 1];	// Text name for file, with +1 for 
 					// the trailing '\0'
     bool isDir;
+    char* name;
 };
 
 // The following class defines a UNIX-like "directory".  Each entry in
@@ -62,7 +63,7 @@ class Directory {
     int Find(char *name);		// Find the sector number of the 
 					// FileHeader for file: "name"
 
-    bool Add(char *name, int newSector);  // Add a file name into the directory
+    bool Add(char *name, int newSector, bool isDir);  // Add a file name into the directory
 
     bool Remove(char *name);		// Remove a file from the directory
 
@@ -72,10 +73,15 @@ class Directory {
 					//  of the directory -- all the file
 					//  names and their contents.
 
-  private:
-    int tableSize;			// Number of directory entries
+    //返回名为name的目录项是否是目录
+    bool IsDir(char* name);
+
+
     DirectoryEntry *table;		// Table of pairs: 
 					// <file name, file header location> 
+  private:
+    int tableSize;			// Number of directory entries
+    
 
     int FindIndex(char *name);		// Find the index into the directory 
 					//  table corresponding to "name"
