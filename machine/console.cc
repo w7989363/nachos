@@ -40,11 +40,11 @@ Console::Console(char *readFile, char *writeFile, VoidFunctionPtr readAvail,
 		VoidFunctionPtr writeDone, int callArg)
 {
     if (readFile == NULL)
-	readFileNo = 0;					// keyboard = stdin
+	    readFileNo = 0;					// keyboard = stdin
     else
     	readFileNo = OpenForReadWrite(readFile, TRUE);	// should be read-only
     if (writeFile == NULL)
-	writeFileNo = 1;				// display = stdout
+	    writeFileNo = 1;				// display = stdout
     else
     	writeFileNo = OpenForWrite(writeFile);
 
@@ -67,9 +67,9 @@ Console::Console(char *readFile, char *writeFile, VoidFunctionPtr readAvail,
 Console::~Console()
 {
     if (readFileNo != 0)
-	Close(readFileNo);
+	    Close(readFileNo);
     if (writeFileNo != 1)
-	Close(writeFileNo);
+	    Close(writeFileNo);
 }
 
 //----------------------------------------------------------------------

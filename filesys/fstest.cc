@@ -136,7 +136,6 @@ FileWrite()
     for (i = 0; i < FileSize; i += ContentSize) {
         numBytes = openFile->Write(Contents, ContentSize);
         if (numBytes < 10) {
-            printf("i:%d\n",i);
             printf("Perf test: unable to write %s\n", FileName);
             delete openFile;
             return;
@@ -144,7 +143,6 @@ FileWrite()
     }
     //再写一次
     for (; i < FileSize*2; i += ContentSize) {
-        printf("i:%d\n",i);
         numBytes = openFile->Write(Contents, ContentSize);
         
         if (numBytes < 10) {

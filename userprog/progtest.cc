@@ -10,9 +10,9 @@
 
 #include "copyright.h"
 #include "system.h"
-#include "console.h"
+#include "synchconsole.h"
 #include "addrspace.h"
-#include "synch.h"
+
 
 //----------------------------------------------------------------------
 // StartProcess
@@ -47,17 +47,18 @@ StartProcess(char *filename)
 // Data structures needed for the console test.  Threads making
 // I/O requests wait on a Semaphore to delay until the I/O completes.
 
-static Console *console;
-static Semaphore *readAvail;
-static Semaphore *writeDone;
+// static Console *console;
+// static Semaphore *readAvail;
+// static Semaphore *writeDone;
+static SynchConsole *synchConsole;
 
 //----------------------------------------------------------------------
 // ConsoleInterruptHandlers
 // 	Wake up the thread that requested the I/O.
 //----------------------------------------------------------------------
 
-static void ReadAvail(int arg) { readAvail->V(); }
-static void WriteDone(int arg) { writeDone->V(); }
+// static void ReadAvail(int arg) { readAvail->V(); }
+// static void WriteDone(int arg) { writeDone->V(); }
 
 //----------------------------------------------------------------------
 // ConsoleTest
@@ -70,15 +71,24 @@ ConsoleTest (char *in, char *out)
 {
     char ch;
 
-    console = new Console(in, out, ReadAvail, WriteDone, 0);
-    readAvail = new Semaphore("read avail", 0);
-    writeDone = new Semaphore("write done", 0);
+    // console = new Console(in, out, ReadAvail, WriteDone, 0);
+    // readAvail = new Semaphore("read avail", 0);
+    // writeDone = new Semaphore("write done", 0);
     
-    for (;;) {
-	readAvail->P();		// wait for character to arrive
-	ch = console->GetChar();
-	console->PutChar(ch);	// echo it!
-	writeDone->P() ;        // wait for write to finish
-	if (ch == 'q') return;  // if q, quit
+    // for (;;) {
+    //     readAvail->P();		// wait for character to arrive
+    //     ch = console->GetChar();
+    //     console->PutChar(ch);	// echo it!
+    //     writeDone->P() ;        // wait for write to finish
+    //     if (ch == 'q') return;  // if q, quit
+    // }
+
+    synchConsole = new SynchConsole(in, out);
+
+    for(;;){
+        ch = synchConsole->GetChar();
+
+        synchConsole->PutChar(ch);
+        if(ch == 'q') return;
     }
 }
