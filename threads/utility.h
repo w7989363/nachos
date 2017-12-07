@@ -25,6 +25,7 @@
 
 #include "copyright.h"
 
+
 // Miscellaneous useful routines
 
 #include "bool.h"
@@ -80,6 +81,7 @@ extern void DEBUG (char flag, char* format, ...);  	// Print debug message
 	fflush(stderr);							      \
         Abort();                                                              \
     }
+
 
 
 #endif // UTILITY_H

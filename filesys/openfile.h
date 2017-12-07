@@ -60,10 +60,31 @@ class OpenFile {
 
 #else // FILESYS
 class FileHeader;
+#include "synch.h"
+//一个文件读写和删除会用到的信号量和计数器
+typedef struct semaphoreGroup{
+    //文件头所在sector，用于标识文件
+    int sector;
+
+    //读者计数用到的锁
+    Semaphore *readCountMutex;
+    //读者计数器
+    int readCount;
+    //写者信号量
+    Semaphore *wt;
+
+    //打开文件计数用到的锁
+    Semaphore *openCountMutex;
+    //打开文件计数器
+    int openCount;
+    //删除文件信号量
+    Semaphore *dt;
+}SemaphoreGroup;
 
 class OpenFile {
   public:
-    OpenFile(int sector);		// Open a file whose header is located
+    OpenFile(int sector);             // Open a file whose header is located
+    OpenFile(int sector, SemaphoreGroup *group);		
 					// at "sector" on the disk
     ~OpenFile();			// Close the file
 
@@ -85,6 +106,7 @@ class OpenFile {
 					// file (this interface is simpler 
 					// than the UNIX idiom -- lseek to 
 					// end of file, tell, lseek back 
+		SemaphoreGroup *semaphoreGroup;
     
   private:
 		//记录文件头所在扇区
@@ -92,6 +114,7 @@ class OpenFile {
     FileHeader *hdr;			// Header for this file 
     int seekPosition;			// Current position within the file
 };
+
 
 #endif // FILESYS
 

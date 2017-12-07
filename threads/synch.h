@@ -18,7 +18,6 @@
 #define SYNCH_H
 
 #include "copyright.h"
-#include "thread.h"
 #include "list.h"
 
 // The following class defines a "semaphore" whose value is a non-negative
@@ -81,7 +80,7 @@ class Lock {
     char* name;				// for debugging
     // plus some other stuff you'll need to define
     Semaphore* mutex;  //利用信号量实现锁
-    Thread* heldThread; //记录该锁由哪个线程持有，用于实现isHeldByCurrentThread
+    //Thread* heldThread; //记录该锁由哪个线程持有，用于实现isHeldByCurrentThread
 };
 
 // The following class defines a "condition variable".  A condition

@@ -24,6 +24,7 @@
 #include "copyright.h"
 #include "synch.h"
 #include "system.h"
+#include "thread.h"
 
 //----------------------------------------------------------------------
 // Semaphore::Semaphore
@@ -111,16 +112,17 @@ Lock::~Lock() {}
 
 void Lock::Acquire() {
     mutex->P();
-    heldThread = currentThread;
+    //heldThread = currentThread;
 }
 
 void Lock::Release() {
-    heldThread = NULL;
+    //heldThread = NULL;
     mutex->V();
 }
 
 bool Lock::isHeldByCurrentThread(){
-    return currentThread == heldThread;
+    //return currentThread == heldThread;
+    return true;
 }
 
 //条件变量的实现

@@ -38,6 +38,7 @@
 #include "copyright.h"
 #include "openfile.h"
 #include "directory.h"
+#include "utility.h"
 
 #ifdef FILESYS_STUB 		// Temporarily implement file system calls as 
 				// calls to UNIX, until the real file system
@@ -66,6 +67,7 @@ class FileSystem {
 };
 
 #else // FILESYS
+#define SemaphoreNum 20
 class FileSystem {
   public:
     FileSystem(bool format);		// Initialize the file system.
@@ -91,10 +93,13 @@ class FileSystem {
 
     void Print();			// List all the files and their contents
 
+	Semaphore *groupLock;
+	SemaphoreGroup *semaphoreGroups;
+
   private:
-   OpenFile* freeMapFile;		// Bit map of free disk blocks,
+   	OpenFile* freeMapFile;		// Bit map of free disk blocks,
 					// represented as a file
-   OpenFile* directoryFile;		// "Root" directory -- list of 
+   	OpenFile* directoryFile;		// "Root" directory -- list of 
 					// file names, represented as a file
 
 	OpenFile* curDirFile;	//当前操作的目录文件

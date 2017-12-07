@@ -26,13 +26,31 @@
 //
 //	"sector" -- the location on disk of the file header for this file
 //----------------------------------------------------------------------
-
 OpenFile::OpenFile(int sector)
 { 
     hdrSector = sector;
     hdr = new FileHeader;
     hdr->FetchFrom(sector);
     seekPosition = 0;
+
+}
+
+OpenFile::OpenFile(int sector, SemaphoreGroup *group)
+{ 
+    hdrSector = sector;
+    hdr = new FileHeader;
+    hdr->FetchFrom(sector);
+    seekPosition = 0;
+
+    semaphoreGroup = group;
+    //对打开文件计数
+    semaphoreGroup->openCountMutex->P();
+    semaphoreGroup->openCount++;
+    if(semaphoreGroup->openCount == 1){
+        semaphoreGroup->dt->P();
+    }
+    semaphoreGroup->openCountMutex->V();
+
 }
 
 //----------------------------------------------------------------------
@@ -43,6 +61,13 @@ OpenFile::OpenFile(int sector)
 OpenFile::~OpenFile()
 {
     delete hdr;
+    //打开文件计数
+    semaphoreGroup->openCountMutex->P();
+    semaphoreGroup->openCount--;
+    if(semaphoreGroup->openCount == 0){
+        semaphoreGroup->dt->V();
+    }
+    semaphoreGroup->openCountMutex->V();
 }
 
 //----------------------------------------------------------------------
@@ -75,17 +100,37 @@ OpenFile::Seek(int position)
 int
 OpenFile::Read(char *into, int numBytes)
 {
-   int result = ReadAt(into, numBytes, seekPosition);
-   seekPosition += result;
-   return result;
+    semaphoreGroup->readCountMutex->P();
+    semaphoreGroup->readCount++;
+    if(semaphoreGroup->readCount == 1){
+        semaphoreGroup->wt->P();
+    }
+    semaphoreGroup->readCountMutex->V();
+
+    int result = ReadAt(into, numBytes, seekPosition);
+
+    semaphoreGroup->readCountMutex->P();
+    semaphoreGroup->readCount--;
+    if(semaphoreGroup->readCount == 0){
+        semaphoreGroup->wt->V();
+    }
+    semaphoreGroup->readCountMutex->V();
+
+    seekPosition += result;
+    return result;
 }
 
 int
 OpenFile::Write(char *from, int numBytes)
 {
-   int result = WriteAt(from, numBytes, seekPosition);
-   seekPosition += result;
-   return result;
+    semaphoreGroup->wt->P();
+
+    int result = WriteAt(from, numBytes, seekPosition);
+
+    semaphoreGroup->wt->V();
+    
+    seekPosition += result;
+    return result;
 }
 
 //----------------------------------------------------------------------

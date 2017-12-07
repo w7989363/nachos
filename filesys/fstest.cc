@@ -111,7 +111,7 @@ Print(char *name, char *path)
 #define FileName 	"TestFile"
 #define Contents 	"1234567890"
 #define ContentSize 	strlen(Contents)
-#define FileSize 	((int)(ContentSize * 400))
+#define FileSize 	((int)(ContentSize * 5))
 
 static void 
 FileWrite()
@@ -134,24 +134,27 @@ FileWrite()
 	    return;
     }
     for (i = 0; i < FileSize; i += ContentSize) {
+        printf("writer %d time try\n",i);
         numBytes = openFile->Write(Contents, ContentSize);
+        printf("writer %d time write:%s\n",i,Contents);
+        currentThread->Yield();
         if (numBytes < 10) {
             printf("Perf test: unable to write %s\n", FileName);
             delete openFile;
             return;
         }
     }
-    //再写一次
-    for (; i < FileSize*2; i += ContentSize) {
-        numBytes = openFile->Write(Contents, ContentSize);
+    // //再写一次
+    // for (; i < FileSize*2; i += ContentSize) {
+    //     numBytes = openFile->Write(Contents, ContentSize);
         
-        if (numBytes < 10) {
+    //     if (numBytes < 10) {
             
-            printf("Perf test: unable to write %s\n", FileName);
-            delete openFile;
-            return;
-        }
-    }
+    //         printf("Perf test: unable to write %s\n", FileName);
+    //         delete openFile;
+    //         return;
+    //     }
+    // }
     delete openFile;	// close file
 }
 
@@ -171,13 +174,15 @@ FileRead()
 	return;
     }
     for (i = 0; i < FileSize; i += ContentSize) {
+        printf("reader %d time try\n",i);
         numBytes = openFile->Read(buffer, ContentSize);
-	if ((numBytes < 10) || strncmp(buffer, Contents, ContentSize)) {
-	    printf("Perf test: unable to read %s\n", FileName);
-	    delete openFile;
-	    delete [] buffer;
-	    return;
-	}
+        printf("reader %d time read:%s\n",i,buffer);
+        if ((numBytes < 10) || strncmp(buffer, Contents, ContentSize)) {
+            printf("Perf test: unable to read %s\n", FileName);
+            delete openFile;
+            delete [] buffer;
+            return;
+        }
     }
     delete [] buffer;
     delete openFile;	// close file
@@ -197,12 +202,16 @@ PerformanceTest()
     // fileSystem->Create("test2", 50, 0, "\/dirA\/dirC");
     // fileSystem->Create("test3", 50, 0, "\/dirA\/dirC\/dirD");
 
-    FileWrite();
+    
+
+    
+    //FileWrite();
     //FileRead();
     // if (!fileSystem->Remove(FileName)) {
     //   printf("Perf test: unable to remove %s\n", FileName);
     //   return;
     // }
+  
 
 }
 
