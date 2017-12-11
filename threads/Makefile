@@ -70,7 +70,7 @@ synch.o: ../threads/synch.cc /usr/include/stdc-predef.h \
  /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
  ../threads/stdarg.h /usr/include/bits/stdio_lim.h \
  /usr/include/bits/sys_errlist.h /usr/include/string.h \
- /usr/include/xlocale.h ../threads/system.h ../threads/thread.h \
+ /usr/include/xlocale.h ../threads/thread.h ../threads/system.h \
  ../threads/scheduler.h ../machine/interrupt.h ../threads/list.h \
  ../machine/stats.h ../machine/timer.h ../threads/utility.h
 synchlist.o: ../threads/synchlist.cc /usr/include/stdc-predef.h \
@@ -84,7 +84,7 @@ synchlist.o: ../threads/synchlist.cc /usr/include/stdc-predef.h \
  /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
  ../threads/stdarg.h /usr/include/bits/stdio_lim.h \
  /usr/include/bits/sys_errlist.h /usr/include/string.h \
- /usr/include/xlocale.h ../threads/synch.h
+ /usr/include/xlocale.h ../threads/synch.h ../threads/thread.h
 system.o: ../threads/system.cc /usr/include/stdc-predef.h \
  ../threads/copyright.h ../threads/system.h ../threads/utility.h \
  ../threads/bool.h ../machine/sysdep.h ../threads/copyright.h \
@@ -232,7 +232,8 @@ elevatortest.o: ../machine/elevatortest.cc /usr/include/stdc-predef.h \
  ../threads/stdarg.h /usr/include/bits/stdio_lim.h \
  /usr/include/bits/sys_errlist.h /usr/include/string.h \
  /usr/include/xlocale.h ../threads/list.h ../threads/utility.h \
- ../threads/synch.h ../threads/list.h ../threads/thread.h
+ ../threads/synch.h ../threads/list.h ../threads/thread.h \
+ ../threads/thread.h
 elevator.o: ../machine/elevator.cc /usr/include/stdc-predef.h \
  ../threads/copyright.h ../machine/elevator.h ../threads/utility.h \
  ../threads/copyright.h ../threads/bool.h ../machine/sysdep.h \

@@ -111,7 +111,7 @@ Print(char *name, char *path)
 #define FileName 	"TestFile"
 #define Contents 	"1234567890"
 #define ContentSize 	strlen(Contents)
-#define FileSize 	((int)(ContentSize * 5))
+#define FileSize 	((int)(ContentSize * 500))
 
 static void 
 FileWrite()
@@ -134,10 +134,7 @@ FileWrite()
 	    return;
     }
     for (i = 0; i < FileSize; i += ContentSize) {
-        printf("writer %d time try\n",i);
         numBytes = openFile->Write(Contents, ContentSize);
-        printf("writer %d time write:%s\n",i,Contents);
-        currentThread->Yield();
         if (numBytes < 10) {
             printf("Perf test: unable to write %s\n", FileName);
             delete openFile;
@@ -174,9 +171,7 @@ FileRead()
 	return;
     }
     for (i = 0; i < FileSize; i += ContentSize) {
-        printf("reader %d time try\n",i);
         numBytes = openFile->Read(buffer, ContentSize);
-        printf("reader %d time read:%s\n",i,buffer);
         if ((numBytes < 10) || strncmp(buffer, Contents, ContentSize)) {
             printf("Perf test: unable to read %s\n", FileName);
             delete openFile;
@@ -202,10 +197,35 @@ PerformanceTest()
     // fileSystem->Create("test2", 50, 0, "\/dirA\/dirC");
     // fileSystem->Create("test3", 50, 0, "\/dirA\/dirC\/dirD");
 
-    
+    // printf("writer try to write 1 time\n");
+    // printf("writer end 1 time\n");
+    // printf("writer try to write 2 time\n");
+    // printf("writer end 2 time\n");
+    // printf("writer try to write 3 time\n");
+    // printf("reader try to read 1 time\n");
+    // printf("writer end 3 time\n");
+    // printf("writer try to write 4 time\n");
+    // printf("writer end 4 time\n");
+    // printf("writer try to write 5 time\n");
+    // printf("writer end 5 time\n");
+    // printf("writer finish\n");
+    // printf("reader end 1 time\n");
+    // printf("reader try to read 2 time\n");
+    // printf("reader end 2 time\n");
+    // printf("reader try to read 3 time\n");
+    // printf("reader end 3 time\n");
+    // printf("reader try to read 4 time\n");
+    // printf("reader end 4 time\n");
+    // printf("reader try to read 5 time\n");
+    // printf("reader end 5 time\n");
+
+    // printf("open file TestFile\n");
+    // printf("try to remove TestFile\n");
+    // printf("close file TestFile\n");
+    // printf("remove finished\n");
 
     
-    //FileWrite();
+    FileWrite();
     //FileRead();
     // if (!fileSystem->Remove(FileName)) {
     //   printf("Perf test: unable to remove %s\n", FileName);

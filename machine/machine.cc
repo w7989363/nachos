@@ -249,3 +249,9 @@ void Machine::WriteRegister(int num, int value){
 	registers[num] = value;
 }
 
+//PC向前
+void Machine::PCAdvanced(){
+    WriteRegister(PrevPCReg, registers[PCReg]);
+    WriteRegister(PCReg, registers[PCReg]+sizeof(int));
+    WriteRegister(NextPCReg, registers[NextPCReg]+sizeof(int));
+}

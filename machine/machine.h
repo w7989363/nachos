@@ -119,6 +119,8 @@ class Machine {
     void WriteRegister(int num, int value);
 				// store a value into a CPU register
 
+	//PC向前
+	void PCAdvanced();
 
 // Routines internal to the machine simulation -- DO NOT call these 
 

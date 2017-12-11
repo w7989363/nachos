@@ -149,11 +149,11 @@ FileSystem::FileSystem(bool format)
     }
 
     //对信号量组进行初始化
-    groupLock = new Semaphore("grouplock",1);
-    semaphoreGroups = new SemaphoreGroup[SemaphoreNum];
-    for(int i = 0; i < SemaphoreNum; i++){
-        semaphoreGroups[i].sector = -1;
-    }
+    // groupLock = new Semaphore("grouplock",1);
+    // semaphoreGroups = new SemaphoreGroup[SemaphoreNum];
+    // for(int i = 0; i < SemaphoreNum; i++){
+    //     semaphoreGroups[i].sector = -1;
+    // }
 }
 
 //----------------------------------------------------------------------
@@ -280,41 +280,52 @@ FileSystem::Open(char *name, char *path)
     Directory *directory = OpenDir(path);
     ASSERT(directory!=NULL);
     OpenFile *openFile = NULL;
-    SemaphoreGroup *group;
     int sector;
-    int found = 0;
-    int freeIndex = -1;
+    // int found = 0;
+    // int freeIndex = -1;
+    // SemaphoreGroup *group;
     DEBUG('f', "Opening file %s\n", name);
     sector = directory->Find(name); 
-    if (sector >= 0) 	
+    if (sector >= 0) {
         //检索文件对应的semaphoreGroup
-        groupLock->P();
-        for(int i = 0; i < SemaphoreNum; i++){
-            if(semaphoreGroups[i].sector == -1){
-                freeIndex = i;
-            }
-            if(semaphoreGroups[i].sector == sector){
-                group = &semaphoreGroups[i];
-                found = 1;
-            }
-        }
-        ASSERT(freeIndex != -1);
-        //没有对应的，第一次打开,初始化信号量组
-        if(!found){
-            group = new SemaphoreGroup;
-            group->sector = sector;
-            group->readCountMutex = new Semaphore("readcount",1);
-            group->readCount = 0;
-            group->wt = new Semaphore("writer",1);
-            group->openCountMutex = new Semaphore("opencound",1);
-            group->openCount = 0;
-            group->dt = new Semaphore("delete",1);
-            semaphoreGroups[freeIndex] = *group;
-        }
-        groupLock->V();	
-	    openFile = new OpenFile(sector,group);	// name was found in directory 
+        // groupLock->P();
+        // for(int i = 0; i < SemaphoreNum; i++){
+        //     if(semaphoreGroups[i].sector == -1){
+        //         freeIndex = i;
+        //     }
+        //     if(semaphoreGroups[i].sector == sector){
+        //         group = &semaphoreGroups[i];
+        //         found = 1;
+        //     }
+        // }
+        // ASSERT(freeIndex != -1);
+        // //没有对应的，第一次打开,初始化信号量组
+        // if(!found){
+        //     group = new SemaphoreGroup;
+        //     group->sector = sector;
+        //     group->readCountMutex = new Semaphore("readcount",1);
+        //     group->readCount = 0;
+        //     group->wt = new Semaphore("writer",1);
+        //     group->openCountMutex = new Semaphore("opencound",1);
+        //     group->openCount = 0;
+        //     group->dt = new Semaphore("delete",1);
+        //     semaphoreGroups[freeIndex] = *group;
+        // }
+        // groupLock->V();	
+	    // openFile = new OpenFile(sector,group);	// name was found in directory 
+        openFile = new OpenFile(sector);
+    }
     delete directory;
     return openFile;				// return NULL if not found
+}
+
+OpenFile *
+FileSystem::Open(char *name)
+{ 
+    int fileDescriptor = OpenForReadWrite(name, FALSE);
+
+		if (fileDescriptor == -1) return NULL;
+		return new OpenFile(fileDescriptor);
 }
 
 
@@ -378,17 +389,17 @@ FileSystem::Remove(char *name, char *path)
        return FALSE;			 // file not found 
     }
     //获取该文件的信号量组
-    groupLock->P();
-    int index = -1;
-    for(int i = 0; i < SemaphoreNum; i++){
-        if(semaphoreGroups[i].sector == sector){
-            index = i;
-        }
-    }
-    groupLock->V();
-    if(index != -1){
-        semaphoreGroups[index].dt->P();
-    }
+    // groupLock->P();
+    // int index = -1;
+    // for(int i = 0; i < SemaphoreNum; i++){
+    //     if(semaphoreGroups[i].sector == sector){
+    //         index = i;
+    //     }
+    // }
+    // groupLock->V();
+    // if(index != -1){
+    //     semaphoreGroups[index].dt->P();
+    // }
 
     //如果是目录，递归删除
     if(directory->IsDir(name)){
@@ -422,9 +433,9 @@ FileSystem::Remove(char *name, char *path)
     delete directory;
     delete freeMap;
 
-    if(index != -1){
-        semaphoreGroups[index].dt->V();
-    }
+    // if(index != -1){
+    //     semaphoreGroups[index].dt->V();
+    // }
     return TRUE;
 } 
 

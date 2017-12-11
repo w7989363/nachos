@@ -50,6 +50,7 @@
 // The SPARC and MIPS only need 10 registers, but the Snake needs 18.
 // For simplicity, this is just the max over all architectures.
 #define MachineStateSize 18 
+#define MaxChildThreadNum 10
 
 
 // Size of the thread's private execution stack.
@@ -109,6 +110,9 @@ class Thread {
     int getPri(){ return this->pri; }
     void setPri(int p){ this->pri = p; }
     void Print() { printf("%s, ", name); }
+
+    Thread *childThread[MaxChildThreadNum];
+    Thread *fatherThread;
 
   private:
     // some of the private data for this class is listed above

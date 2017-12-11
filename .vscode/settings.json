@@ -11,6 +11,8 @@
         "thread": "cpp",
         "tuple": "cpp",
         "stdio.h": "c",
-        "cstdio": "c"
+        "cstdio": "c",
+        "chrono": "cpp",
+        "type_traits": "cpp"
     }
 }

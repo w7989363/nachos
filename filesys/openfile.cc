@@ -35,23 +35,23 @@ OpenFile::OpenFile(int sector)
 
 }
 
-OpenFile::OpenFile(int sector, SemaphoreGroup *group)
-{ 
-    hdrSector = sector;
-    hdr = new FileHeader;
-    hdr->FetchFrom(sector);
-    seekPosition = 0;
+// OpenFile::OpenFile(int sector, SemaphoreGroup *group)
+// { 
+//     hdrSector = sector;
+//     hdr = new FileHeader;
+//     hdr->FetchFrom(sector);
+//     seekPosition = 0;
 
-    semaphoreGroup = group;
-    //对打开文件计数
-    semaphoreGroup->openCountMutex->P();
-    semaphoreGroup->openCount++;
-    if(semaphoreGroup->openCount == 1){
-        semaphoreGroup->dt->P();
-    }
-    semaphoreGroup->openCountMutex->V();
+//     semaphoreGroup = group;
+//     //对打开文件计数
+//     semaphoreGroup->openCountMutex->P();
+//     semaphoreGroup->openCount++;
+//     if(semaphoreGroup->openCount == 1){
+//         semaphoreGroup->dt->P();
+//     }
+//     semaphoreGroup->openCountMutex->V();
 
-}
+// }
 
 //----------------------------------------------------------------------
 // OpenFile::~OpenFile
@@ -62,12 +62,12 @@ OpenFile::~OpenFile()
 {
     delete hdr;
     //打开文件计数
-    semaphoreGroup->openCountMutex->P();
-    semaphoreGroup->openCount--;
-    if(semaphoreGroup->openCount == 0){
-        semaphoreGroup->dt->V();
-    }
-    semaphoreGroup->openCountMutex->V();
+    // semaphoreGroup->openCountMutex->P();
+    // semaphoreGroup->openCount--;
+    // if(semaphoreGroup->openCount == 0){
+    //     semaphoreGroup->dt->V();
+    // }
+    // semaphoreGroup->openCountMutex->V();
 }
 
 //----------------------------------------------------------------------
@@ -100,21 +100,21 @@ OpenFile::Seek(int position)
 int
 OpenFile::Read(char *into, int numBytes)
 {
-    semaphoreGroup->readCountMutex->P();
-    semaphoreGroup->readCount++;
-    if(semaphoreGroup->readCount == 1){
-        semaphoreGroup->wt->P();
-    }
-    semaphoreGroup->readCountMutex->V();
+    // semaphoreGroup->readCountMutex->P();
+    // semaphoreGroup->readCount++;
+    // if(semaphoreGroup->readCount == 1){
+    //     semaphoreGroup->wt->P();
+    // }
+    // semaphoreGroup->readCountMutex->V();
 
     int result = ReadAt(into, numBytes, seekPosition);
 
-    semaphoreGroup->readCountMutex->P();
-    semaphoreGroup->readCount--;
-    if(semaphoreGroup->readCount == 0){
-        semaphoreGroup->wt->V();
-    }
-    semaphoreGroup->readCountMutex->V();
+    // semaphoreGroup->readCountMutex->P();
+    // semaphoreGroup->readCount--;
+    // if(semaphoreGroup->readCount == 0){
+    //     semaphoreGroup->wt->V();
+    // }
+    // semaphoreGroup->readCountMutex->V();
 
     seekPosition += result;
     return result;
@@ -123,11 +123,11 @@ OpenFile::Read(char *into, int numBytes)
 int
 OpenFile::Write(char *from, int numBytes)
 {
-    semaphoreGroup->wt->P();
+    //semaphoreGroup->wt->P();
 
     int result = WriteAt(from, numBytes, seekPosition);
 
-    semaphoreGroup->wt->V();
+    //semaphoreGroup->wt->V();
     
     seekPosition += result;
     return result;

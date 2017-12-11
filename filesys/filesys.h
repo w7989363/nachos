@@ -61,6 +61,12 @@ class FileSystem {
 		if (fileDescriptor == -1) return NULL;
 		return new OpenFile(fileDescriptor);
     }
+	OpenFile* Open(char *name) {
+		int fileDescriptor = OpenForReadWrite(name, FALSE);
+
+		if (fileDescriptor == -1) return NULL;
+		return new OpenFile(fileDescriptor);
+    }
 
     bool Remove(char *name) { return Unlink(name) == 0; }
 
@@ -81,7 +87,7 @@ class FileSystem {
 					// Create a file (UNIX creat)
 
     OpenFile* Open(char *name, char *path); 	// Open a file (UNIX open)
-
+	OpenFile* Open(char *name);
 	//打开path对应的文件夹
 	Directory* OpenDir(char *path);
 
@@ -93,8 +99,8 @@ class FileSystem {
 
     void Print();			// List all the files and their contents
 
-	Semaphore *groupLock;
-	SemaphoreGroup *semaphoreGroups;
+	// Semaphore *groupLock;
+	// SemaphoreGroup *semaphoreGroups;
 
   private:
    	OpenFile* freeMapFile;		// Bit map of free disk blocks,

@@ -67,6 +67,11 @@ Thread::Thread(char* threadName, int p=10)
 #ifdef USER_PROGRAM
     space = NULL;
 #endif
+
+    for(int i=0;i<MaxChildThreadNum;i++){
+        childThread[i] = NULL;
+    }
+    fatherThread = this;
 }
 
 //----------------------------------------------------------------------
@@ -215,6 +220,8 @@ Thread::Yield ()
     DEBUG('t', "Yielding thread \"%s\"\n", getName());
     //先将当前线程按优先级加入就绪队列，再调度
     scheduler->ReadyToRun(this);
+    scheduler->Print();
+
     nextThread = scheduler->FindNextToRun();
     if (nextThread != NULL) {
         scheduler->Run(nextThread);

@@ -24,8 +24,7 @@
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
-
-
+#include "openfile.h"
 //FIFO置换算法
 int FIFOReplace(){
     for(int i = 0; i < TLBSize-1; i++){
@@ -67,13 +66,13 @@ void UpdatePageTable(){
     //修改页表
     machine->pageTable[vpn].physicalPage = ppn;
     machine->pageTable[vpn].valid = TRUE;
-    printf("vpn:%d has been inserted into mainMem:%d\n\n",vpn,ppn);
+    //printf("vpn:%d has been inserted into mainMem:%d\n\n",vpn,ppn);
 }
 
 //TLB缺页处理
 void UpdateTLB(){
     int vpn = (unsigned)machine->ReadRegister(BadVAddrReg) / PageSize;
-    printf("vpn:%d\n",vpn);
+    //printf("vpn:%d\n",vpn);
     int pos = -1;
     for(int i = 0; i<TLBSize; i++){
         if(machine->tlb[i].valid == FALSE){
@@ -89,7 +88,7 @@ void UpdateTLB(){
     //页表该项valid为false
     if(!machine->pageTable[vpn].valid){
         //却页处理程序，将该页调入内存
-        printf("PageFault. reading from swap.\n");
+        //printf("PageFault. reading from swap.\n");
         UpdatePageTable();
     }
     //该页已经调入内存
@@ -104,7 +103,76 @@ void UpdateTLB(){
     
 }
 
+void exec_fork_func(int name){
+    char *filename = new char[128];
+    filename = (char*)name;
+    printf("%s\n",filename);
+    OpenFile *file = fileSystem->Open(filename);
+    AddrSpace *space = new AddrSpace(file);
+    currentThread->space = space;
+    space->InitRegisters();
+    space->RestoreState();
+    machine->Run();
+}
 
+void SyscallExec(){
+    int base = machine->ReadRegister(4);
+    int value;
+    int count = 0;
+    char *para = new char[128];
+    //machine->DumpState();
+    do{
+        machine->ReadMem(base+count, 1, &value);
+        //printf("%d, %c\n",value,(char)value);
+        para[count] = (char)value;
+        count++;
+    }while(count<128 && (char)value != '\0');
+    para[0] = '.';
+    //printf("filename:%s\n", para);
+    Thread *newthread = new Thread("child",0);
+    bool found = false;
+    for(count=0;count<MaxChildThreadNum;count++){
+        if(currentThread->childThread[count] == NULL){
+            currentThread->childThread[count] = newthread;
+            machine->WriteRegister(2,(int)newthread);
+            found = true;
+            break;
+        }
+    }
+    if(!found){
+        printf("full of children. Exec failed.\n");
+        machine->PCAdvanced();
+        return;
+    }
+    newthread->fatherThread = currentThread;
+    newthread->Fork(exec_fork_func, (int)para);
+
+    machine->PCAdvanced();
+}
+
+void SyscallJoin(){
+    int id = machine->ReadRegister(4);
+    Thread *cthread = (Thread*)id;
+    bool found = false;
+    int num;
+    for(int i = 0; i<MaxChildThreadNum;i++){
+        if(currentThread->childThread[i] == cthread){
+            num = i;
+            found = true;
+            break;
+        }
+    }
+    if(!found){
+        printf("cannot find children thread. Join failed.\n");
+        return;
+    }
+    while(currentThread->childThread[num] != NULL){
+        printf("%s thread is waiting for his child: %s \n",currentThread->getName(),cthread->getName());
+        currentThread->Yield();
+    }
+    printf("%s thread: child thread has been finished. Join success.\n");
+    machine->PCAdvanced();
+}
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -141,8 +209,21 @@ ExceptionHandler(ExceptionType which)
             break;
         case SC_Exit:
             DEBUG('a', "user program is done.\n");
+            //int code = machine->ReadRegister(4);
+            printf("%s thread exit.\n",currentThread->getName());
             //printf("ret:%d",machine->ReadRegister(4));
             currentThread->Finish();
+            machine->PCAdvanced();
+            // 
+            // 
+            // currentThread->Finish();
+            // 
+            break;
+        case SC_Exec:
+            SyscallExec();
+            break;
+        case SC_Join:
+            SyscallJoin();
             break;
         default:
             printf("Unexpected user mode exception %d %d\n", which, type);
@@ -151,7 +232,7 @@ ExceptionHandler(ExceptionType which)
     }
     else if(which == PageFaultException){
         //TLB缺页处理
-        printf("TLBPageFaultException,reading from pageTable.\n");
+        //  printf("TLBPageFaultException,reading from pageTable.\n");
         UpdateTLB();  
     }
     else {

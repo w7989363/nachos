@@ -166,6 +166,7 @@ Scheduler::Run (Thread *nextThread)
 void
 Scheduler::Print()
 {
-    printf("Ready list contents:\n");
+    printf("num:%d\n",readyList->NumInList());
+    printf("\nReady list contents:\n");
     readyList->Mapcar((VoidFunctionPtr) ThreadPrint);
 }
