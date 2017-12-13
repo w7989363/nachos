@@ -55,6 +55,7 @@ class FileSystem {
 		return TRUE; 
 	}
 
+
     OpenFile* Open(char *name, char *path) {
 		int fileDescriptor = OpenForReadWrite(name, FALSE);
 

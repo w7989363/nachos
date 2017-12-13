@@ -105,61 +105,78 @@ void UpdateTLB(){
     
 }
 
+//join子线程函数
 void exec_fork_func(int name){
-    //machine->bitmap->PrintUsage();
     char *filename = new char[128];
     filename = (char*)name;
     printf("[exception]Starting userprog (%s)\n",filename);
+    //打开可执行文件
     OpenFile *file = fileSystem->Open(filename);
     ASSERT(file != NULL);
+    //给该文件创建地址空间
     AddrSpace *space = new AddrSpace(file);
+    //地址空间赋给当前线程
     currentThread->space = space;
+    //初始化系统寄存器
     space->InitRegisters();
+    //把地址空间中页表设置为当前页表
     space->RestoreState();
     printf("[exception]userprog (%s) is running\n",filename);
     machine->Run();
 }
 
+//Exec系统调用
 void SyscallExec(){
     int base = machine->ReadRegister(4);
     int value;
-    int count = 0;
+    int count;
+    int i;
     char *para = new char[128];
-    //machine->DumpState();
+    //逐个字节读取内存base地址中的参数
+    count = 0;
     do{
-        machine->ReadMem(base+count, 1, &value);
-        //printf("%d, %c\n",value,(char)value);
-        para[count] = (char)value;
+        machine->ReadMem(base++, 1, &value);
         count++;
-    }while(count<128 && (char)value != '\0');
-    para[0] = '.';
-    //printf("filename:%s\n", para);
+    }while(value != 0);
+    base = base-count;
+    for(i=0;i<count;i++){
+        machine->ReadMem(base+i,1,&value);
+        para[i] = (char)value;
+    }
+    //新创建线程
     Thread *newthread = new Thread("childThread",0);
+    //在当前线程的子县城数组中加入该子线程
     bool found = false;
     for(count=0;count<MaxChildThreadNum;count++){
         if(currentThread->childThread[count] == NULL){
             currentThread->childThread[count] = newthread;
+            //将返回值写入2号寄存器
             machine->WriteRegister(2,(int)newthread);
             found = true;
             break;
         }
     }
+    //子线程数组满
     if(!found){
         printf("full of children. Exec failed.\n");
         machine->PCAdvanced();
         return;
     }
+    //更改子线程的父线程
     newthread->fatherThread = currentThread;
     newthread->Fork(exec_fork_func, (int)para);
-
+    delete para;
     machine->PCAdvanced();
 }
 
+//Join系统调用
 void SyscallJoin(){
+    //读取要等待的子线程
     int id = machine->ReadRegister(4);
     Thread *cthread = (Thread*)id;
     bool found = false;
     int num = -1;
+    //在子线程数组中寻找该线程
     for(int i = 0; i<MaxChildThreadNum;i++){
         if(currentThread->childThread[i] == cthread){
             num = i;
@@ -167,18 +184,161 @@ void SyscallJoin(){
             break;
         }
     }
+    //没有找到该子线程
     if(!found){
-        printf("[exception]cannot find children thread. Join failed.\n");
+        printf("[exception]cannot find child thread (%s). Join failed.\n",cthread->getName());
         return;
     }
-    while(currentThread->childThread[num] != NULL && num != -1){
+    //找到了该线程并且子线程未结束
+    while(num != -1 && currentThread->childThread[num] != NULL ){
         printf("[exception]thread (%s) is waiting for his child (%s) \n",currentThread->getName(),cthread->getName());
         currentThread->Yield();
     }
     printf("[exception]child thread has been finished. Join success.\n");
-    //machine->bitmap->PrintUsage();
+    //ExitCode写回2号寄存器
+    machine->WriteRegister(2,0);
+
     machine->PCAdvanced();
 }
+
+//Create系统调用
+void SyscallCreate(){
+    int base = machine->ReadRegister(4);
+    int value;
+    int count;
+    int i;
+    char *para = new char[128];
+    //逐个字节读取内存base地址中的参数
+    count = 0;
+    do{
+        machine->ReadMem(base++, 1, &value);
+        count++;
+    }while(value != 0);
+    base = base-count;
+    for(i=0;i<count;i++){
+        machine->ReadMem(base+i,1,&value);
+        para[i] = (char)value;
+    }
+    printf("%s\n",para);
+    if(fileSystem->Create(para, 128, 0, "")){
+        printf("[exception]create file (%s) succeed.\n",para);
+    }
+    else{
+        printf("[exception]create file (%s) failed.\n",para);
+    }
+    delete para;
+    machine->PCAdvanced();
+}
+
+//Open系统调用
+void SyscallOpen(){
+    int base = machine->ReadRegister(4);
+    int value;
+    int count;
+    int i;
+    char *para = new char[128];
+    //逐个字节读取内存base地址中的参数
+    count = 0;
+    do{
+        machine->ReadMem(base++, 1, &value);
+        count++;
+    }while(value != 0);
+    base = base-count;
+    for(i=0;i<count;i++){
+        machine->ReadMem(base+i,1,&value);
+        para[i] = (char)value;
+    }
+    //调用文件系统接口打开文件
+    OpenFile *file = fileSystem->Open(para);
+    if(file != NULL){
+        printf("[exception]open file (%s) succeed. id (%d)\n",para, (int)file);
+        //返回参数写入2号寄存器
+        machine->WriteRegister(2,(int)file);
+    }
+    else{
+        printf("[exception]open file (%s) failed.\n",para);
+        machine->WriteRegister(2,0);
+    }
+    delete para;
+    machine->PCAdvanced();
+}
+
+//Close系统调用
+void SyscallClose(){
+    int value = machine->ReadRegister(4);
+    OpenFile *file = (OpenFile*)value;
+    printf("[exception]closing file id (%d)\n",value);
+    delete file;
+    machine->PCAdvanced();
+}
+
+//Write系统调用
+void SyscallWrite(){
+    int bufferbase = machine->ReadRegister(4);
+    int size = machine->ReadRegister(5);
+    int fd = machine->ReadRegister(6);
+    char *contents = new char[128];
+    int i,value;
+    //获取buffer内容
+    for(i=0;i<size;i++){
+        machine->ReadMem(bufferbase+i, 1, &value);
+        contents[i] = (char)value;
+    }
+    contents[i] = '\0';
+
+    OpenFile* file = (OpenFile*)fd;
+    if(file == NULL){
+        printf("[exception]write file id is null. Write failed\n");
+    }
+    else{
+        printf("[exception]writing contents (%s)\n",contents);
+        //写文件
+        file->Write(contents, size);
+    }
+    delete contents;
+    machine->PCAdvanced();
+}
+
+//Read系统调用
+void SyscallRead(){
+    int bufferbase = machine->ReadRegister(4);
+    int size = machine->ReadRegister(5);
+    int fd = machine->ReadRegister(6);
+    char *contents = new char[128];
+    int i,value;
+    OpenFile* openfile = (OpenFile*)fd;
+    if(openfile == NULL){
+        printf("[exception]read file id is null. Read failed\n");
+    }
+    else{
+        printf("[exception]reading (%d) bytes from file to buffer\n",size);
+        //从文件读进缓冲区
+        openfile->Read(contents, size);
+        contents[size] = '\0';
+        //printf("[exception]contents (%s)\n",contents);
+        for(i = 0; i < size; i++){
+            value = (int)contents[i];
+            machine->WriteMem(bufferbase+i, 1, value);
+        }
+        //字符串结尾写入内存
+        machine->WriteMem(bufferbase+i, 1, 0);
+        printf("[exception]write contents to Nachos mainMemory\n");
+    }
+    delete contents;
+    machine->PCAdvanced();
+}
+
+//Fork系统调用
+void SyscallFork(){
+
+}
+
+//Yield系统调用
+void SyscallYield(){
+
+}
+
+
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -226,6 +386,27 @@ ExceptionHandler(ExceptionType which)
             break;
         case SC_Join:
             SyscallJoin();
+            break;
+        case SC_Create:
+            SyscallCreate();
+            break;
+        case SC_Open:
+            SyscallOpen();
+            break;
+        case SC_Close:
+            SyscallClose();
+            break;
+        case SC_Write:
+            SyscallWrite();
+            break;
+        case SC_Read:
+            SyscallRead();
+            break;
+        case SC_Fork:
+            SyscallFork();
+            break;
+        case SC_Yield:
+            SyscallYield();
             break;
         default:
             printf("Unexpected user mode exception %d %d\n", which, type);
