@@ -256,6 +256,15 @@ AddrSpace::AddrSpace(OpenFile *executable)
     //machine->bitmap->PrintUsage();
 }
 
+AddrSpace::AddrSpace(AddrSpace* sp){
+    int i;
+    numPages = sp->numPages;
+    pageTable = new TranslationEntry[numPages];
+    for(i = 0; i < numPages; i++){
+        pageTable[i] = sp->pageTable[i];
+    }
+}
+
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace
 // 	Dealloate an address space.  Nothing for now!

@@ -136,15 +136,19 @@ void SyscallExec(){
     count = 0;
     do{
         machine->ReadMem(base++, 1, &value);
+        printf("%d\n",value);
         count++;
     }while(value != 0);
     base = base-count;
-    for(i=0;i<count;i++){
+    for(i=0;;i++){
         machine->ReadMem(base+i,1,&value);
         para[i] = (char)value;
+        if(para[i] == '\0'){
+            break;
+        }
     }
     //新创建线程
-    Thread *newthread = new Thread("childThread",0);
+    Thread *newthread = new Thread("childThread1",0);
     //在当前线程的子县城数组中加入该子线程
     bool found = false;
     for(count=0;count<MaxChildThreadNum;count++){
@@ -158,14 +162,15 @@ void SyscallExec(){
     }
     //子线程数组满
     if(!found){
-        printf("full of children. Exec failed.\n");
+        printf("[exception]full of children. Exec failed.\n");
         machine->PCAdvanced();
         return;
     }
     //更改子线程的父线程
     newthread->fatherThread = currentThread;
+    printf("%s\n",para);
     newthread->Fork(exec_fork_func, (int)para);
-    delete para;
+    //delete para;
     machine->PCAdvanced();
 }
 
@@ -313,8 +318,10 @@ void SyscallRead(){
     else{
         printf("[exception]reading (%d) bytes from file to buffer\n",size);
         //从文件读进缓冲区
-        openfile->Read(contents, size);
+        i = openfile->Read(contents, size);
         contents[size] = '\0';
+        //读出字节数写回2号寄存器
+        machine->WriteRegister(2, i);
         //printf("[exception]contents (%s)\n",contents);
         for(i = 0; i < size; i++){
             value = (int)contents[i];
@@ -328,14 +335,53 @@ void SyscallRead(){
     machine->PCAdvanced();
 }
 
+void fork_func(int pc){
+    printf("[exception]child thread fork\n");
+    //设置子线程空间
+    AddrSpace* sp = currentThread->fatherThread->space;
+    AddrSpace* space = new AddrSpace(sp);
+    currentThread->space = space;
+    //设置PC
+    machine->WriteRegister(PCReg, pc);
+    machine->WriteRegister(NextPCReg, pc+4);
+    //保存线程状态
+    printf("[exception]child thread start running.\n");
+    machine->Run();
+}
 //Fork系统调用
 void SyscallFork(){
+    int i;
+    //读取子线程函数的指令地址
+    int PC = machine->ReadRegister(4);
+    //创建子线程
+    Thread *cthread = new Thread("childThread2", 0);
+    bool found = false;
+    //子线程添加到当前线程的子线程数组中
+    for(i = 0; i < MaxChildThreadNum; i++){
+        if(currentThread->childThread[i] == NULL){
+            currentThread->childThread[i] = cthread;
+            found = true;
+            break;
+        }
+    }
+    if(!found){
+        printf("[exception]full of children. Exec failed.\n");
+        machine->PCAdvanced();
+        return;
+    }
+    //子线程的父线程赋值
+    cthread->fatherThread = currentThread;
+    cthread->Fork(fork_func, PC);
 
+    machine->PCAdvanced();
 }
+
 
 //Yield系统调用
 void SyscallYield(){
-
+    machine->PCAdvanced();
+    printf("[exception]thread (%s) yield.\n",currentThread->getName());
+    currentThread->Yield();
 }
 
 
