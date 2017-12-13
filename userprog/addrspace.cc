@@ -60,6 +60,81 @@ SwapHeader (NoffHeader *noffH)
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
 
+//不使用虚拟内存
+// AddrSpace::AddrSpace(OpenFile *executable)
+// {
+//     NoffHeader noffH;
+//     unsigned int i, size;
+
+//     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
+//     if ((noffH.noffMagic != NOFFMAGIC) && 
+// 		(WordToHost(noffH.noffMagic) == NOFFMAGIC))
+//     	SwapHeader(&noffH);
+//     ASSERT(noffH.noffMagic == NOFFMAGIC);
+
+// // how big is address space?
+//     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size 
+// 			+ UserStackSize;	// we need to increase the size
+// 						// to leave room for the stack
+//     numPages = divRoundUp(size, PageSize);
+//     size = numPages * PageSize;
+
+//     ASSERT(numPages <= NumPhysPages);		// check we're not trying
+// 						// to run anything too big --
+// 						// at least until we have
+// 						// virtual memory
+
+//     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
+//                     numPages, size);
+                    
+
+// // first, set up the translation 
+//     pageTable = new TranslationEntry[numPages];
+//     for (i = 0; i < numPages; i++) {
+//         pageTable[i].virtualPage = i;
+//         //由bitmap控制物理内存分配
+//         pageTable[i].physicalPage = machine->bitmap->Find();
+//         //物理内存满
+//         ASSERT(pageTable[i].physicalPage != -1);
+//         //pageTable[i].physicalPage = -1;
+//         pageTable[i].valid = TRUE;
+//         pageTable[i].use = FALSE;
+//         pageTable[i].dirty = FALSE;
+//         pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
+//                         // a separate page, we could set its 
+//                         // pages to be read-only
+//     }
+//     if (noffH.code.size > 0) {
+//         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
+// 			noffH.code.virtualAddr, noffH.code.size);
+//         //将代码段写入内存
+//         int pos = noffH.code.inFileAddr;
+//         for(i = 0; i < noffH.code.size; i++){
+//             int vpn = (noffH.code.virtualAddr + i) / PageSize;
+//             int offset = (noffH.code.virtualAddr + i) % PageSize;
+//             int phyaddr = pageTable[vpn].physicalPage * PageSize + offset;
+//             ASSERT((vpn+vpnoffset)*PageSize + offset < MemorySize);
+//             executable->ReadAt(&(machine->mainMemory[phyaddr]), 1, pos++);
+//         }
+//     }
+//     if (noffH.initData.size > 0) {
+//         DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
+// 			noffH.initData.virtualAddr, noffH.initData.size);
+//         //将数据段写入内存
+//         int pos = noffH.initData.inFileAddr;
+//         for(i = 0; i < noffH.initData.size; i++){
+//             int vpn = (noffH.initData.virtualAddr + i) / PageSize;
+//             int offset = (noffH.initData.virtualAddr + i) % PageSize;
+//             int phyaddr = pageTable[vpn].physicalPage * PageSize + offset;
+//             executable->ReadAt(&(machine->mainMemory[phyaddr]), 1, pos++);
+//         }
+//     }
+//     //输出内存占用量
+//     printf("[addrspace]thread (%s) creating it's space.\n",currentThread->getName());
+//     machine->bitmap->PrintUsage();
+// }
+
+//使用虚拟内存
 AddrSpace::AddrSpace(OpenFile *executable)
 {
     NoffHeader noffH;
@@ -177,6 +252,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
         */
     }
     //输出内存占用量
+    printf("[addrspace]thread (%s) creating it's space.\n",currentThread->getName());
     //machine->bitmap->PrintUsage();
 }
 
@@ -188,7 +264,9 @@ AddrSpace::AddrSpace(OpenFile *executable)
 AddrSpace::~AddrSpace()
 {
     for(int i = 0; i < numPages; i++){
-        machine->bitmap->Clear(pageTable[i].physicalPage);
+        if(pageTable[i].valid){
+            machine->bitmap->Clear(pageTable[i].physicalPage);
+        }
     }
     delete pageTable;
 }

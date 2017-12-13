@@ -49,7 +49,7 @@ int LRUReplace(){
     return pos;
 }
 
-//页表却页处理
+//页表缺页处理
 void UpdatePageTable(){
     //虚拟页号，加上偏移对应虚存中该页位置
     int vpn = (unsigned)machine->ReadRegister(BadVAddrReg) / PageSize;
@@ -61,12 +61,13 @@ void UpdatePageTable(){
     //拷贝到物理内存
     for(int i = 0; i < PageSize; i++){
         //printf("mainmem:%d,swap:%d\n",ppn*PageSize + i,(vpn+currentThread->space->vpnoffset)*PageSize + i);
+        //从虚存中读进内存
         machine->mainMemory[ppn*PageSize + i] = machine->swapspace[(vpn+currentThread->space->vpnoffset)*PageSize + i];
     }
     //修改页表
     machine->pageTable[vpn].physicalPage = ppn;
     machine->pageTable[vpn].valid = TRUE;
-    //printf("vpn:%d has been inserted into mainMem:%d\n\n",vpn,ppn);
+    printf("[exception]thread (%s) vpn (%d) has been inserted into mainMem (%d)\n",currentThread->getName(),vpn,ppn);
 }
 
 //TLB缺页处理
@@ -93,6 +94,7 @@ void UpdateTLB(){
     }
     //该页已经调入内存
     ASSERT(machine->pageTable[vpn].valid);
+
     //插入TLB
     machine->tlb[pos].valid = TRUE;
     machine->tlb[pos].virtualPage = vpn;
@@ -104,14 +106,17 @@ void UpdateTLB(){
 }
 
 void exec_fork_func(int name){
+    //machine->bitmap->PrintUsage();
     char *filename = new char[128];
     filename = (char*)name;
-    printf("%s\n",filename);
+    printf("[exception]Starting userprog (%s)\n",filename);
     OpenFile *file = fileSystem->Open(filename);
+    ASSERT(file != NULL);
     AddrSpace *space = new AddrSpace(file);
     currentThread->space = space;
     space->InitRegisters();
     space->RestoreState();
+    printf("[exception]userprog (%s) is running\n",filename);
     machine->Run();
 }
 
@@ -129,7 +134,7 @@ void SyscallExec(){
     }while(count<128 && (char)value != '\0');
     para[0] = '.';
     //printf("filename:%s\n", para);
-    Thread *newthread = new Thread("child",0);
+    Thread *newthread = new Thread("childThread",0);
     bool found = false;
     for(count=0;count<MaxChildThreadNum;count++){
         if(currentThread->childThread[count] == NULL){
@@ -154,7 +159,7 @@ void SyscallJoin(){
     int id = machine->ReadRegister(4);
     Thread *cthread = (Thread*)id;
     bool found = false;
-    int num;
+    int num = -1;
     for(int i = 0; i<MaxChildThreadNum;i++){
         if(currentThread->childThread[i] == cthread){
             num = i;
@@ -163,14 +168,15 @@ void SyscallJoin(){
         }
     }
     if(!found){
-        printf("cannot find children thread. Join failed.\n");
+        printf("[exception]cannot find children thread. Join failed.\n");
         return;
     }
-    while(currentThread->childThread[num] != NULL){
-        printf("%s thread is waiting for his child: %s \n",currentThread->getName(),cthread->getName());
+    while(currentThread->childThread[num] != NULL && num != -1){
+        printf("[exception]thread (%s) is waiting for his child (%s) \n",currentThread->getName(),cthread->getName());
         currentThread->Yield();
     }
-    printf("%s thread: child thread has been finished. Join success.\n");
+    printf("[exception]child thread has been finished. Join success.\n");
+    //machine->bitmap->PrintUsage();
     machine->PCAdvanced();
 }
 //----------------------------------------------------------------------
@@ -209,15 +215,11 @@ ExceptionHandler(ExceptionType which)
             break;
         case SC_Exit:
             DEBUG('a', "user program is done.\n");
-            //int code = machine->ReadRegister(4);
-            printf("%s thread exit.\n",currentThread->getName());
-            //printf("ret:%d",machine->ReadRegister(4));
+            int code;
+            code = machine->ReadRegister(4);
+            printf("[exception]thread (%s) exit. Code (%d)\n",currentThread->getName(),code);
             currentThread->Finish();
             machine->PCAdvanced();
-            // 
-            // 
-            // currentThread->Finish();
-            // 
             break;
         case SC_Exec:
             SyscallExec();

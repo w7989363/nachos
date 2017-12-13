@@ -94,30 +94,31 @@ void
 Scheduler::Run (Thread *nextThread)
 {
     Thread *oldThread = currentThread;
+    int i,j;
     
 #ifdef USER_PROGRAM			// ignore until running user programs 
     if (currentThread->space != NULL) {	// if this thread is a user program,
         currentThread->SaveUserState(); // save the user's CPU registers
         currentThread->space->SaveState();
         //清空占用的内存
-        for(int i = 0; i < currentThread->space->numPages; i++){
-            if(machine->pageTable[i].valid == TRUE){
-                // //脏页，写回磁盘
-                // if(machine->pageTable[i].dirty){
-                //     for(int j = 0; j < PageSize; j++){
-                //         machine->swapspace[(machine->pageTable[i].virtualPage +
-                //             currentThread->space->vpnoffset) * PageSize + j]
-                //             = machine->mainMemory[machine->pageTable[i].physicalPage * PageSize + j];
-                //     }
-                // }
-                //清理bitmap
-                machine->bitmap->Clear(machine->pageTable[i].physicalPage);
-                //使页表项失效
-                machine->pageTable[i].valid = FALSE;
-            }
-        }
+        // for(i = 0; i < currentThread->space->numPages; i++){
+        //     if(currentThread->space->pageTable[i].valid == TRUE){
+        //         // //脏页，写回磁盘
+        //         // if(machine->pageTable[i].dirty){
+        //         //     for(j = 0; j < PageSize; j++){
+        //         //         machine->swapspace[(machine->pageTable[i].virtualPage +
+        //         //             currentThread->space->vpnoffset) * PageSize + j]
+        //         //             = machine->mainMemory[machine->pageTable[i].physicalPage * PageSize + j];
+        //         //     }
+        //         // }
+        //         //清理bitmap
+        //         machine->bitmap->Clear(currentThread->space->pageTable[i].physicalPage);
+        //         //使页表项失效
+        //         currentThread->space->pageTable[i].valid = FALSE;
+        //     }
+        // }
         //清空TLB
-        for(int i =0; i < TLBSize; i++){
+        for(i =0; i < TLBSize; i++){
             machine->tlb[i].valid = FALSE;
         }
     }
@@ -145,17 +146,27 @@ Scheduler::Run (Thread *nextThread)
     // we need to delete its carcass.  Note we cannot delete the thread
     // before now (for example, in Thread::Finish()), because up to this
     // point, we were still running on the old thread's stack!
-    if (threadToBeDestroyed != NULL) {
+    if (threadToBeDestroyed != NULL && threadToBeDestroyed->fatherThread != NULL) {
+        //删除其父线程中子线程数组对应项
+        Thread *fthread = threadToBeDestroyed->fatherThread;
+        for(i = 0; i < MaxChildThreadNum; i++){
+            if(fthread->childThread[i] == threadToBeDestroyed){
+                printf("[scheduler]Father thread (%s) is deleting his child (%s)\n",fthread->getName(),threadToBeDestroyed->getName());
+                fthread->childThread[i] = NULL;
+            }
+        }
         delete threadToBeDestroyed;
-	threadToBeDestroyed = NULL;
+	    threadToBeDestroyed = NULL;
     }
     
 #ifdef USER_PROGRAM
     if (currentThread->space != NULL) {		// if there is an address space
+        //printf("[shceduler]thread (%s) is restoring space\n",currentThread->getName());
         currentThread->RestoreUserState();     // to restore, do it.
 	    currentThread->space->RestoreState();
     }
 #endif
+    printf("[shceduler]Switching from thread (%s) to thread (%s)\n",oldThread->getName(), nextThread->getName());
 }
 
 //----------------------------------------------------------------------

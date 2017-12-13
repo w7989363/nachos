@@ -97,8 +97,14 @@ Thread::~Thread()
     threadNum--;
 
     if (stack != NULL)
-    DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+        DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
     //threadnum--;
+#ifdef USER_PROGRAM
+    if(space != NULL){
+        delete space;
+    }
+#endif
+    
 }
 
 //----------------------------------------------------------------------
@@ -128,7 +134,7 @@ Thread::Fork(VoidFunctionPtr func, void *arg)
 	  name, (int) func, (int*) arg);
     
     StackAllocate(func, arg);
-
+    printf("[thread]thread (%s) Fork.\n",name);
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
     scheduler->ReadyToRun(this);	// ReadyToRun assumes that interrupts 
 					// are disabled!
@@ -220,9 +226,10 @@ Thread::Yield ()
     DEBUG('t', "Yielding thread \"%s\"\n", getName());
     //先将当前线程按优先级加入就绪队列，再调度
     scheduler->ReadyToRun(this);
-    scheduler->Print();
+    //scheduler->Print();
 
     nextThread = scheduler->FindNextToRun();
+    //printf("[thread227]next thread %s\n",nextThread->getName());
     if (nextThread != NULL) {
         scheduler->Run(nextThread);
     }

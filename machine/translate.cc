@@ -209,6 +209,8 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     offset = (unsigned) virtAddr % PageSize;
 	
 
+	//以下代码先查TLB， miss则pagefault
+	
 	//首先查找TLB
 	//维护LRU_mark，每项先+1,后面命中则令某一项为0
 	for(int k = 0; k < TLBSize; k++){
@@ -231,6 +233,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 					// the page may be in memory,
 					// but not in the TLB
 	}
+	
 
 	//利用倒排页表查询
 	/*
@@ -279,6 +282,12 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	// 					// but not in the TLB
 	// 	}
     // }
+
+	//不使用TLB，且页表都进内存，不会PageFault，直接查页表
+	/*
+	ASSERT(vpn < pageTableSize);
+	entry = &pageTable[vpn];
+	*/
 
     if (entry->readOnly && writing) {	// trying to write to a read-only page
 		DEBUG('a', "%d mapped read-only at %d in TLB!\n", virtAddr, i);
